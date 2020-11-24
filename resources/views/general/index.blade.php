@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>StudyfuckerLab - Free Bootstrap 4 Template by Colorlib</title>
+    <title>Kitch 'n Rush</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     
@@ -24,11 +24,354 @@
  
     <script src="{{ asset('js/supplementary/jquery.min.js') }}"></script>
     <script type="text/javascript" src="{{ asset('js/app.js') }}"></script>
-    <script type="text/javascript" src="{{ asset('js/three/three.js') }}"></script>
+    <script src="https://pagecdn.io/lib/three/110/three.min.js" crossorigin="anonymous"  ></script>
+    <!--script type="text/javascript" src="{{ asset('js/three/three.js') }}"></script-->
+    <script type="text/javascript" src="{{ asset('js/three/MTLLoader.js') }}"></script>
+	<script type="text/javascript" src="{{ asset('js/three/OBJLoader.js') }}"></script>
     <script type="text/javascript" src="{{ asset('js/three/GLTFLoader.js') }}"></script>
  
     <script type="module">
 
+      /*
+	$(document).ready(function() {
+var renderer,
+    	scene,
+    	camera,
+    	myCanvas = document.getElementById('splash-canvas');
+
+    //RENDERER
+    renderer = new THREE.WebGLRenderer({
+      canvas: myCanvas, 
+      antialias: true
+    });
+    renderer.setClearColor(0x000000);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setSize(window.innerWidth, window.innerHeight);
+
+    //CAMERA
+    camera = new THREE.PerspectiveCamera(35, window.innerWidth / window.innerHeight, 0.1, 1000 );
+
+    //SCENE
+    scene = new THREE.Scene();
+
+    //LIGHTS
+    var light = new THREE.AmbientLight(0xffffff, 0.5);
+    scene.add(light);
+
+    var light2 = new THREE.PointLight(0xffffff, 0.5);
+    scene.add(light2);
+  
+    var loader = new THREE.GLTFLoader();
+
+    loader.load('assets/kitchen.glb', handle_load);
+
+    var mesh;
+
+    function handle_load(gltf) {
+
+        console.log(gltf);
+        mesh = gltf.scene;
+        console.log(mesh.children[0]);
+        mesh.children[0].material = new THREE.MeshLambertMaterial();
+		scene.add( mesh );
+        mesh.position.z = -10;
+    }
+
+
+    //RENDER LOOP
+    render();
+
+    var delta = 0;
+    var prevTime = Date.now();
+
+    function render() {
+
+        delta += 0.1;
+
+        if (mesh) {
+        
+            mesh.rotation.y += 0.01;
+
+            //animation mesh
+            // mesh.morphTargetInfluences[ 0 ] = Math.sin(delta) * 20.0;
+        }
+
+    	renderer.render(scene, camera);
+
+    	requestAnimationFrame(render);
+    }
+*/
+
+  var scene;
+	var camera;
+	var renderer;
+	var controls;
+	var objects = [];
+	var clock;
+	var deltaTime;	
+	var keys = {};
+  var mesh;
+
+	var rayCaster;
+	var objetosConColision = [];
+
+  const GLTFLoader = new THREE.GLTFLoader();
+
+
+	var isWorldReady = [ false, false ];
+
+	$(document).ready(function() {
+
+    $( "#play-btn" ).click(function() {
+      $("#play-registry").toggle("fast", "swing", function(){
+        $("#select-stage").toggle();
+      });
+    });
+
+    $( "#okay-btn" ).click(function() {
+      $("#initial-info").toggle();
+      $("#select-stage").toggle();
+      $("#username").toggle();
+    });
+
+    $( ".course-category" ).click(function() {
+      $( ".course-category" ).removeClass('selected');
+      $(this).toggleClass('selected');
+    });
+
+		setupScene();
+
+		rayCaster = new THREE.Raycaster();
+
+		camera.rayos = [
+			new THREE.Vector3(1, 0, 0),
+			new THREE.Vector3(-1, 0, 0),
+			new THREE.Vector3(0, 0, 1),
+			new THREE.Vector3(0, 0, -1),
+		];
+/*
+		loadOBJWithMTL("assets/", "box.obj", "box.mtl", (object) => {
+			object.position.z = -30;			
+
+			var box2 = object.clone();
+			box2.position.x = 30;
+
+			var box3 = object.clone();
+			box3.position.x = -30;
+
+
+			var box4 = object.clone();
+			box4.position.x = 0;
+			box4.position.z = 30;
+
+			var box5 = box4.clone();
+			box5.position.x = 30;
+
+			var box6 = box4.clone();
+			box6.position.x = -30;
+
+			var box7 = object.clone();		
+			box7.position.z = 0;
+			box7.position.x = 50;
+			box7.rotation.y = THREE.Math.degToRad(90);
+
+			var box8 = box7.clone();		
+			box8.position.x = -50;
+			box8.rotation.y = THREE.Math.degToRad(-90);
+
+
+			scene.add(object);
+			scene.add(box2);
+			scene.add(box3);
+			scene.add(box4);
+			scene.add(box5);
+			scene.add(box6);
+			scene.add(box7);
+			scene.add(box8);
+
+			objetosConColision.push(object);
+			objetosConColision.push(box2);
+			objetosConColision.push(box3);
+			objetosConColision.push(box4);
+			objetosConColision.push(box5);
+			objetosConColision.push(box6);
+			objetosConColision.push(box7);
+			objetosConColision.push(box8);
+			
+
+			isWorldReady[0] = true;
+		});
+
+		loadOBJWithMTL("assets/", "jetski.obj", "jetski.mtl", (object) => {
+			object.position.z = -10;
+			object.rotation.x = THREE.Math.degToRad(-90);
+
+			scene.add(object);
+			isWorldReady[1] = true;
+		});
+*/
+
+    GLTFLoader.load('assets/kitchen.glb', handle_load);
+
+
+
+    function handle_load(gltf) {
+
+      //Transformations
+      gltf.scene.scale.set(3.5,3.5,3);
+      gltf.scene.rotation.y=THREE.Math.degToRad(180);
+
+      //Check it out in console
+      //console.log(gltf);
+
+        mesh = gltf.scene;
+        console.log(mesh.children[0]);
+        mesh.children[0].material = new THREE.MeshLambertMaterial();
+		    mesh.name = "scenery";
+        scene.add( mesh );
+        mesh.position.z = -10;
+    }
+
+		
+
+    isWorldReady[0] = true;
+    isWorldReady[1] = true;
+
+		render();
+
+		document.addEventListener('keydown', onKeyDown);
+		document.addEventListener('keyup', onKeyUp);		
+	});
+
+	function loadOBJWithMTL(path, objFile, mtlFile, onLoadCallback) {
+		var mtlLoader = new THREE.MTLLoader();
+		mtlLoader.setPath(path);
+		mtlLoader.load(mtlFile, (materials) => {
+			
+			var objLoader = new THREE.OBJLoader();
+			objLoader.setMaterials(materials);
+			objLoader.setPath(path);
+			objLoader.load(objFile, (object) => {
+				onLoadCallback(object);
+			});
+
+		});
+	}
+
+	function onKeyDown(event) {
+		keys[String.fromCharCode(event.keyCode)] = true;
+	}
+	function onKeyUp(event) {
+		keys[String.fromCharCode(event.keyCode)] = false;
+	}
+
+	
+	function render() {
+		requestAnimationFrame(render);
+		deltaTime = clock.getDelta();	
+
+		var yaw = 0;
+		var forward = 0;
+		if (keys["A"]) {
+			yaw = 5;
+		} else if (keys["D"]) {
+			yaw = -5;
+		}
+		if (keys["W"]) {
+			forward = -20;
+		} else if (keys["S"]) {
+			forward = 20;
+    }
+    
+    if (keys["R"]) {
+			$('#results-modal').modal('toggle');
+      $('#results-modal').modal('show');
+      $('#results-modal').modal('hide');
+    }
+    
+    if (keys["P"]) {
+			$('#pause-modal').modal('toggle');
+      $('#pause-modal').modal('show');
+      $('#pause-modal').modal('hide');
+		}
+
+    //Get by names
+
+    var scenery = scene.getObjectByName("scenery");
+
+
+
+		if (isWorldReady[0] && isWorldReady[1]) {
+
+			for (var i = 0; i < camera.rayos.length; i++) {
+
+				// "Lanzamos" el rayo
+				// 1er Param: Desde donde lanzamos el rayo
+				// 2do Param: Direccion del rayo
+
+				rayCaster.set(camera.position, camera.rayos[i]);
+
+				// Verificamos si hay colision
+
+				// 1er Param: Objetos con los que evaluar si hay colision
+				// 2do Param: Para detectar tambien colision con los hijos
+				var colision = rayCaster.intersectObjects(objetosConColision, true);
+
+				if (colision.length > 0 && colision[0].distance < 1) {
+					// Si hay colision
+					console.log("Ya estas colisionando!");
+					forward = -4 * (forward);
+				}
+
+
+        scenery.rotation.y += 0.001;
+			}
+			
+
+			//if (camera.direction.x !== 0 || camera.direction.z !== 0){
+			camera.rotation.y += yaw * deltaTime;
+			camera.translateZ(forward * deltaTime);
+			//}
+
+		}
+		
+	
+		renderer.render(scene, camera);
+	}
+
+  //Obligatory starter shit.
+	function setupScene() {		
+    
+		var visibleSize = { width: window.innerWidth, height: window.innerHeight};
+		clock = new THREE.Clock();		
+		scene = new THREE.Scene();
+		camera = new THREE.PerspectiveCamera(75, visibleSize.width / visibleSize.height, 0.1, 100);
+		camera.position.z = 2;
+		camera.position.y = 5;
+
+		renderer = new THREE.WebGLRenderer( {precision: "mediump" } );
+		renderer.setClearColor(new THREE.Color(0, 0, 0));
+		renderer.setPixelRatio(visibleSize.width / visibleSize.height);
+		renderer.setSize(visibleSize.width, visibleSize.height);
+
+		var ambientLight = new THREE.AmbientLight(new THREE.Color(1, 1, 1), 1.0);
+		scene.add(ambientLight);
+
+		var directionalLight = new THREE.DirectionalLight(new THREE.Color(1, 1, 0), 0.4);
+		directionalLight.position.set(0, 0, 1);
+		scene.add(directionalLight);
+
+		var grid = new THREE.GridHelper(50, 10, 0xffffff, 0xffffff);
+		grid.position.y = -1;
+		scene.add(grid);
+
+		$("#splash-canvas").append(renderer.domElement);
+	}
+
+
+
+
+/*
       	// Coleccion de objetos de ThreeJS
 	    var scene;
 
@@ -135,14 +478,8 @@
 
             renderer.render(scene, camera);
         }
+        */
     </script>
-  <script type="text/javascript">
-   /* $(#play-btn).onclick{
-      $
-    }*/
-  </script>
-
-
 </head>
 <body>
  <nav class="navbar navbar-expand-lg navbar-dark ftco_navbar bg-dark ftco-navbar-light" id="ftco-navbar">
@@ -154,12 +491,9 @@
 
    <div class="collapse navbar-collapse" id="ftco-nav">
        <ul class="navbar-nav ml-auto">
-         <li class="nav-item active"><a href="index.html" class="nav-link">Home</a></li>
-         <li class="nav-item"><a href="about.html" class="nav-link">About</a></li>
-         <li class="nav-item"><a href="course.html" class="nav-link">Course</a></li>
-         <li class="nav-item"><a href="instructor.html" class="nav-link">Instructor</a></li>
-         <li class="nav-item"><a href="blog.html" class="nav-link">Blog</a></li>
-         <li class="nav-item"><a href="contact.html" class="nav-link">Contact</a></li>
+         <li id="username" style="display: none;" class="nav-item"><a href="instructor.html" class="nav-link">xXx_PussySlayer_xXx</a></li>
+         <!--li class="nav-item"><a href="blog.html" class="nav-link">Options</a></li-->
+         <li class="nav-item"><a href="#" data-toggle="modal" data-target="#help-modal" class="nav-link">Help</a></li>
      </ul>
  </div>
 </div>
@@ -168,35 +502,100 @@
 
 <div class="hero-wrap js-fullheight" >
 
-  <div class="overlay" id="splash-canvas"></div>
-  <div class="container">
+  <div class=" overlay" id="splash-canvas"></div>
+  <div class="container" id="initial-info">
     <div class="row no-gutters slider-text js-fullheight align-items-center" data-scrollax-parent="true">
       <div class="col-md-7 ftco-animate">
-        <span class="subheading">Welcome to StudyLab</span>
-        <h1 class="mb-4">We Are Online Platform For Make Learn</h1>
-        <p class="caps">Far far away, behind the word mountains, far from the countries Vokalia and Consonantia</p>
-        <p class="mb-0"><a href="#" class="btn btn-primary">Our Course</a> <a href="#" class="btn btn-white">Learn More</a></p>
+        <span class="subheading">Welcome to Kitch 'n Rush!</span>
+        <h1 class="mb-4">Online Speedrun cooking simulator.</h1>
+        <p class="caps">Start playing by creating an account or play as a guest. Select one mode ad voila! Fun never ends.</p>
+        <!--p class="mb-0"><a href="#" class="btn btn-primary">Our Course</a> <a href="#" class="btn btn-white">Learn More</a></p-->
     </div>
 </div>
 </div>
 </div>
 
   <!-- Modal -->
-  <div class="modal fade" id="myModal" role="dialog">
+  <div class="modal fade" id="results-modal" role="dialog">
     <div class="modal-dialog">
     
       <!-- Modal content-->
       <div class="modal-content">
         <div class="modal-header">
 
-          <h4 class="modal-title">Modal Header</h4>
+          <h4 class="modal-title">Results</h4>
           <button type="button" class="close" data-dismiss="modal">&times;</button>
         </div>
         <div class="modal-body">
-          <p>Some text in the modal.</p>
+                <div class="row justify-content-center pb-4">
+          <div class="col-md-12 heading-section text-center ftco-animate">
+          	<span class="subheading">Congratulations!</span>
+            <h2 class="mb-4">You Won!</h2>
+        </div>
+    </div>
+        <p>With: 0.00 seconds to spare.</p>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-default purple" data-dismiss="modal">Neat!</button>
+        </div>
+      </div>
+      
+    </div>
+  </div>
+
+   <!-- Modal -->
+   <div class="modal fade" id="help-modal" role="dialog">
+    <div class="modal-dialog">
+    
+      <!-- Modal content-->
+      <div class="modal-content">
+        <div class="modal-header">
+
+          <h4 class="modal-title">Controls</h4>
+          <button type="button" class="close" data-dismiss="modal">&times;</button>
+        </div>
+        <div class="modal-body">
+                <div class="row justify-content-center pb-4">
+          <div class="col-md-12 heading-section text-center ftco-animate">
+            <p>WASD: Move around.</p>
+            <p>Mouse: Move hand.</p>
+            <p>Right Click: Grab.</p>
+            <p>Left Click: Let go.</p>
+        </div>
+    </div>
+        
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-default purple" data-dismiss="modal">Got it!</button>
+        </div>
+      </div>
+      
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div class="modal fade" id="pause-modal" role="dialog">
+    <div class="modal-dialog">
+    
+      <!-- Modal content-->
+      <div class="modal-content">
+        <div class="modal-header">
+
+          <h4 class="modal-title">Pause</h4>
+          <button type="button" class="close" data-dismiss="modal">&times;</button>
+        </div>
+        <div class="modal-body">
+                <div class="row justify-content-center pb-4">
+          <div class="col-md-12 heading-section text-center ftco-animate">
+          	
+            <h3 class="mb-4">On pause...</h3>
+            <span class="subheading">Remember that this is an online game, so time is still running!</span>
+        </div>
+    </div>
+        
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-default purple" data-dismiss="modal">Go Back!</button>
         </div>
       </div>
       
@@ -216,9 +615,17 @@
                     <p>As a guest...</p>
 
                 </div>
-                 <div class="form-group">
+                 <div class="">
                     <label class="label" for="name">Alias</label>
-                    <input type="text" class="form-control" placeholder="John Doe">
+                    <input type="text" class="form-control" placeholder="xXx_PussySlayer_xXx">
+                </div>
+                <div class="form-group d-flex justify-content-end mt-4">
+              <button id="play-btn" type="button"  class="btn purple submit fill">Play!</button>
+             </div>
+
+                <div class="form-group">
+                    <p>Or use an account...</p>
+
                 </div>
                 <!--div class="form-group">
                     <label class="label" for="email">Email Address</label>
@@ -232,14 +639,15 @@
                  <label class="label" for="password">Confirm Password</label>
                  <input id="password-field" type="password" class="form-control" placeholder="Confirm Password">
              </div-->
-             <div class="form-group d-flex justify-content-end mt-4">
-              <button type="button" data-toggle="modal" data-target="#myModal" class="btn btn-primary submit fill">Play!</button>
-             </div>
-             <div class="form-group d-flex justify-content-end mt-4">
-             <button type="button" data-toggle="modal" data-target="#myModal" class="btn btn-primary submit"><span class="fa fa-paper-plane"></span></button>
-    
-             <button type="button" data-toggle="modal" data-target="#myModal" class="btn btn-primary submit"><span class="fa fa-paper-plane"></span></button>
-             </div>
+
+            <div class="form-group row">
+              <div class="col-md-6 col-lg-6">
+                <button type="button" data-toggle="modal" data-target="#myModal" class="btn btn-primary fill submit"><span class="fa fa-facebook"></span>  Sign In</button>
+              </div>
+              <div class="col-md-6 col-lg-6">
+                <button type="button" data-toggle="modal" data-target="#myModal" class="btn btn-danger fill submit"><span class="fa fa-google"></span> Sign In</button>
+              </div>
+            </div>
          </form>
          <p class="text-center">Already have an account? <a href="#signin">Sign In</a></p>
      </div>
@@ -248,7 +656,64 @@
 </div>
 </section>
 
-<section class="ftco-section">
+<section class="ftco-section ftco-no-pb ftco-no-pt" style="display: none;" id="select-stage">
+   <div class="container">
+      <div class="row">
+         <div class="col-md-7"></div>
+         <div class="col-md-5 order-md-last">
+          <div class="login-wrap p-4 p-md-5">
+              <h3 >Select Dish</h3>
+              <hr>
+              <form action="#" class="signup-form">
+              <div class="form-group">
+                    <p>Nationality</p>
+
+                </div>
+
+                <!--div class="row justify-content-center pb-4">
+          <div class="col-md-12 heading-section text-center ftco-animate">
+          	<span class="subheading">Start Learning Today</span>
+            <h2 class="mb-4">Browse Online Course Category</h2>
+        </div>
+    </div-->
+
+    <div class="row justify-content-center">
+      <div class="col-md-4 col-lg-4">
+        <a href="#" class="course-category img d-flex align-items-center justify-content-center" style="background-image: url({{ asset('images/schnitzel.jpg') }});">
+           <div class="text w-100 text-center">
+              <h3>Germany</h3>
+              <span>Schnitzel</span>
+          </div>
+        </a>
+      </div>
+      <div class="col-md-4 col-lg-4">
+        <a href="#" class="course-category img d-flex align-items-center justify-content-center" style="background-image: url({{ asset('images/pancakes.jpg') }});">
+           <div class="text w-100 text-center">
+              <h3>'Murrica</h3>
+              <span>Pancakes</span>
+          </div>
+        </a>
+      </div>
+      <div class="col-md-4 col-lg-4">
+        <a href="#" class="course-category img d-flex align-items-center justify-content-center" style="background-image: url({{ asset('images/ravioli.jpg') }});">
+           <div class="text w-100 text-center">
+              <h3>Italy</h3>
+              <span>Ravioli</span>
+          </div>
+        </a>
+      </div>
+    </div>
+    <div class="form-group d-flex justify-content-end mt-4">
+              <button id="okay-btn" type="button"  class="btn purple submit fill">Okay!</button>
+             </div>
+         </form>
+     </div>
+ </div>
+</div>
+</div>
+</section>
+
+<!--section class="ftco-section">
    <div class="container">
       <div class="row justify-content-center pb-4">
           <div class="col-md-12 heading-section text-center ftco-animate">
@@ -817,13 +1282,13 @@
 <div class="row">
   <div class="col-md-12 text-center">
 
-    <p><!-- Link back to Colorlib can't be removed. Template is licensed under CC BY 3.0. -->
+    <p>< Link back to Colorlib can't be removed. Template is licensed under CC BY 3.0. >
       Copyright &copy;<script>document.write(new Date().getFullYear());</script> All rights reserved | This template is made with <i class="fa fa-heart" aria-hidden="true"></i> by <a href="https://colorlib.com" target="_blank">Colorlib</a>
-      <!-- Link back to Colorlib can't be removed. Template is licensed under CC BY 3.0. --></p>
+      <! Link back to Colorlib can't be removed. Template is licensed under CC BY 3.0. ></p>
   </div>
 </div>
 </div>
-</footer>
+</footer-->
 
 
 
@@ -842,8 +1307,6 @@
     <script src="{{ asset('js/supplementary/jquery.animateNumber.min.js') }}"></script>
     <script src="{{ asset('js/supplementary/bootstrap-datepicker.js') }}"></script>
     <script src="{{ asset('js/supplementary/scrollax.min.js') }}"></script>
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBVWaKrjvy3MaE7SQ74_uJiULgl1JY0H2s&sensor=false"></script>
-    <script src="{{ asset('js/supplementary/google-map.js') }}"></script>
     <script src="{{ asset('js/supplementary/main.js') }}"></script>
 
 

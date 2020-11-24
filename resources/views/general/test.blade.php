@@ -5,6 +5,7 @@
 	<script type="text/javascript" src="{{ asset('js/three/three.js') }}"></script>
 	<script type="text/javascript" src="{{ asset('js/three/MTLLoader.js') }}"></script>
 	<script type="text/javascript" src="{{ asset('js/three/OBJLoader.js') }}"></script>
+	<script type="text/javascript" src="{{ asset('js/three/GLTFLoader.js') }}"></script>
 
 	<script type="text/javascript">
 
