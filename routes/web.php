@@ -2,6 +2,8 @@
 
 use Illuminate\Support\Facades\Route;
 
+use App\Http\Controllers\FacebookController;
+
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -21,10 +23,10 @@ Route::get('/test', function () {
     return view('general/index');
 });
 
-Route::get('/test2', function () {
-    return view('general/test');
-});
-
 Route::middleware(['auth:sanctum', 'verified'])->get('/dashboard', function () {
     return view('dashboard');
 })->name('dashboard');
+
+
+Route::get('login/facebook', [FacebookController::class, 'redirectToProvider']);
+Route::get('login/facebook/redirect', [FacebookController::class, 'handleProviderCallback']);

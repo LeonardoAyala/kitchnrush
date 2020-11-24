@@ -27,458 +27,340 @@
     <script src="https://pagecdn.io/lib/three/110/three.min.js" crossorigin="anonymous"  ></script>
     <!--script type="text/javascript" src="{{ asset('js/three/three.js') }}"></script-->
     <script type="text/javascript" src="{{ asset('js/three/MTLLoader.js') }}"></script>
-	<script type="text/javascript" src="{{ asset('js/three/OBJLoader.js') }}"></script>
+	  <script type="text/javascript" src="{{ asset('js/three/OBJLoader.js') }}"></script>
     <script type="text/javascript" src="{{ asset('js/three/GLTFLoader.js') }}"></script>
  
     <script type="module">
 
-      /*
-	$(document).ready(function() {
-var renderer,
-    	scene,
-    	camera,
-    	myCanvas = document.getElementById('splash-canvas');
+      /////////////////////////////////////////////////
+      //Universal variables.
 
-    //RENDERER
-    renderer = new THREE.WebGLRenderer({
-      canvas: myCanvas, 
-      antialias: true
-    });
-    renderer.setClearColor(0x000000);
-    renderer.setPixelRatio(window.devicePixelRatio);
-    renderer.setSize(window.innerWidth, window.innerHeight);
+      //Default
+      var scene;                                    //Object that draws the scene.
+	    var camera;                                   //Object that sees the scene.
+	    var renderer;
+	    var controls;
+	    var objects = [];
+	    var clock;
+	    var deltaTime;	
+	    var keys = {};
 
-    //CAMERA
-    camera = new THREE.PerspectiveCamera(35, window.innerWidth / window.innerHeight, 0.1, 1000 );
+      //Custom
+      var mesh;                                     //EXPERIMENTAL. Trying to build an universal mesh buffer. 
+    
+      //Colisions
+	    var rayCaster;
+	    var objetosConColision = [];
+    
+      //Loaders
+      var GLTFLoader;
+      var audioLoader;                              //EXPERIMENTAL. Trying to have an audio player.
+      var cubeLoader;
 
-    //SCENE
-    scene = new THREE.Scene();
+      //Flags
+      var isWorldReady = [ false, false ];          //Checks if everything is loaded correctly.
+    
+      //URLS
+      var urls = [ 
+        'assets/posx.jpg', 'assets/negx.jpg', 
+        'assets/posy.jpg', 'assets/negy.jpg', 
+        'assets/posz.jpg', 'assets/negz.jpg'
+      ];
 
-    //LIGHTS
-    var light = new THREE.AmbientLight(0xffffff, 0.5);
-    scene.add(light);
-
-    var light2 = new THREE.PointLight(0xffffff, 0.5);
-    scene.add(light2);
-  
-    var loader = new THREE.GLTFLoader();
-
-    loader.load('assets/kitchen.glb', handle_load);
-
-    var mesh;
-
-    function handle_load(gltf) {
-
-        console.log(gltf);
-        mesh = gltf.scene;
-        console.log(mesh.children[0]);
-        mesh.children[0].material = new THREE.MeshLambertMaterial();
-		scene.add( mesh );
-        mesh.position.z = -10;
-    }
-
-
-    //RENDER LOOP
-    render();
-
-    var delta = 0;
-    var prevTime = Date.now();
-
-    function render() {
-
-        delta += 0.1;
-
-        if (mesh) {
+      /////////////////////////////////////////////////
+      //Obligatory starter shit.
         
-            mesh.rotation.y += 0.01;
-
-            //animation mesh
-            // mesh.morphTargetInfluences[ 0 ] = Math.sin(delta) * 20.0;
-        }
-
-    	renderer.render(scene, camera);
-
-    	requestAnimationFrame(render);
-    }
-*/
-
-  var scene;
-	var camera;
-	var renderer;
-	var controls;
-	var objects = [];
-	var clock;
-	var deltaTime;	
-	var keys = {};
-  var mesh;
-
-	var rayCaster;
-	var objetosConColision = [];
-
-  const GLTFLoader = new THREE.GLTFLoader();
-
-
-	var isWorldReady = [ false, false ];
-
-	$(document).ready(function() {
-
-    $( "#play-btn" ).click(function() {
-      $("#play-registry").toggle("fast", "swing", function(){
-        $("#select-stage").toggle();
-      });
-    });
-
-    $( "#okay-btn" ).click(function() {
-      $("#initial-info").toggle();
-      $("#select-stage").toggle();
-      $("#username").toggle();
-    });
-
-    $( ".course-category" ).click(function() {
-      $( ".course-category" ).removeClass('selected');
-      $(this).toggleClass('selected');
-    });
-
-		setupScene();
-
-		rayCaster = new THREE.Raycaster();
-
-		camera.rayos = [
-			new THREE.Vector3(1, 0, 0),
-			new THREE.Vector3(-1, 0, 0),
-			new THREE.Vector3(0, 0, 1),
-			new THREE.Vector3(0, 0, -1),
-		];
-/*
-		loadOBJWithMTL("assets/", "box.obj", "box.mtl", (object) => {
-			object.position.z = -30;			
-
-			var box2 = object.clone();
-			box2.position.x = 30;
-
-			var box3 = object.clone();
-			box3.position.x = -30;
-
-
-			var box4 = object.clone();
-			box4.position.x = 0;
-			box4.position.z = 30;
-
-			var box5 = box4.clone();
-			box5.position.x = 30;
-
-			var box6 = box4.clone();
-			box6.position.x = -30;
-
-			var box7 = object.clone();		
-			box7.position.z = 0;
-			box7.position.x = 50;
-			box7.rotation.y = THREE.Math.degToRad(90);
-
-			var box8 = box7.clone();		
-			box8.position.x = -50;
-			box8.rotation.y = THREE.Math.degToRad(-90);
-
-
-			scene.add(object);
-			scene.add(box2);
-			scene.add(box3);
-			scene.add(box4);
-			scene.add(box5);
-			scene.add(box6);
-			scene.add(box7);
-			scene.add(box8);
-
-			objetosConColision.push(object);
-			objetosConColision.push(box2);
-			objetosConColision.push(box3);
-			objetosConColision.push(box4);
-			objetosConColision.push(box5);
-			objetosConColision.push(box6);
-			objetosConColision.push(box7);
-			objetosConColision.push(box8);
-			
-
-			isWorldReady[0] = true;
-		});
-
-		loadOBJWithMTL("assets/", "jetski.obj", "jetski.mtl", (object) => {
-			object.position.z = -10;
-			object.rotation.x = THREE.Math.degToRad(-90);
-
-			scene.add(object);
-			isWorldReady[1] = true;
-		});
-*/
-
-    GLTFLoader.load('assets/kitchen.glb', handle_load);
-
-
-
-    function handle_load(gltf) {
-
-      //Transformations
-      gltf.scene.scale.set(3.5,3.5,3);
-      gltf.scene.rotation.y=THREE.Math.degToRad(180);
-
-      //Check it out in console
-      //console.log(gltf);
-
-        mesh = gltf.scene;
-        console.log(mesh.children[0]);
-        mesh.children[0].material = new THREE.MeshLambertMaterial();
-		    mesh.name = "scenery";
-        scene.add( mesh );
-        mesh.position.z = -10;
-    }
-
-		
-
-    isWorldReady[0] = true;
-    isWorldReady[1] = true;
-
-		render();
-
-		document.addEventListener('keydown', onKeyDown);
-		document.addEventListener('keyup', onKeyUp);		
-	});
-
-	function loadOBJWithMTL(path, objFile, mtlFile, onLoadCallback) {
-		var mtlLoader = new THREE.MTLLoader();
-		mtlLoader.setPath(path);
-		mtlLoader.load(mtlFile, (materials) => {
-			
-			var objLoader = new THREE.OBJLoader();
-			objLoader.setMaterials(materials);
-			objLoader.setPath(path);
-			objLoader.load(objFile, (object) => {
-				onLoadCallback(object);
-			});
-
-		});
-	}
-
-	function onKeyDown(event) {
-		keys[String.fromCharCode(event.keyCode)] = true;
-	}
-	function onKeyUp(event) {
-		keys[String.fromCharCode(event.keyCode)] = false;
-	}
-
-	
-	function render() {
-		requestAnimationFrame(render);
-		deltaTime = clock.getDelta();	
-
-		var yaw = 0;
-		var forward = 0;
-		if (keys["A"]) {
-			yaw = 5;
-		} else if (keys["D"]) {
-			yaw = -5;
-		}
-		if (keys["W"]) {
-			forward = -20;
-		} else if (keys["S"]) {
-			forward = 20;
-    }
-    
-    if (keys["R"]) {
-			$('#results-modal').modal('toggle');
-      $('#results-modal').modal('show');
-      $('#results-modal').modal('hide');
-    }
-    
-    if (keys["P"]) {
-			$('#pause-modal').modal('toggle');
-      $('#pause-modal').modal('show');
-      $('#pause-modal').modal('hide');
-		}
-
-    //Get by names
-
-    var scenery = scene.getObjectByName("scenery");
-
-
-
-		if (isWorldReady[0] && isWorldReady[1]) {
-
-			for (var i = 0; i < camera.rayos.length; i++) {
-
-				// "Lanzamos" el rayo
-				// 1er Param: Desde donde lanzamos el rayo
-				// 2do Param: Direccion del rayo
-
-				rayCaster.set(camera.position, camera.rayos[i]);
-
-				// Verificamos si hay colision
-
-				// 1er Param: Objetos con los que evaluar si hay colision
-				// 2do Param: Para detectar tambien colision con los hijos
-				var colision = rayCaster.intersectObjects(objetosConColision, true);
-
-				if (colision.length > 0 && colision[0].distance < 1) {
-					// Si hay colision
-					console.log("Ya estas colisionando!");
-					forward = -4 * (forward);
-				}
-
-
-        scenery.rotation.y += 0.001;
-			}
-			
-
-			//if (camera.direction.x !== 0 || camera.direction.z !== 0){
-			camera.rotation.y += yaw * deltaTime;
-			camera.translateZ(forward * deltaTime);
-			//}
-
-		}
-		
-	
-		renderer.render(scene, camera);
-	}
-
-  //Obligatory starter shit.
-	function setupScene() {		
-    
-		var visibleSize = { width: window.innerWidth, height: window.innerHeight};
-		clock = new THREE.Clock();		
-		scene = new THREE.Scene();
-		camera = new THREE.PerspectiveCamera(75, visibleSize.width / visibleSize.height, 0.1, 100);
-		camera.position.z = 2;
-		camera.position.y = 5;
-
-		renderer = new THREE.WebGLRenderer( {precision: "mediump" } );
-		renderer.setClearColor(new THREE.Color(0, 0, 0));
-		renderer.setPixelRatio(visibleSize.width / visibleSize.height);
-		renderer.setSize(visibleSize.width, visibleSize.height);
-
-		var ambientLight = new THREE.AmbientLight(new THREE.Color(1, 1, 1), 1.0);
-		scene.add(ambientLight);
-
-		var directionalLight = new THREE.DirectionalLight(new THREE.Color(1, 1, 0), 0.4);
-		directionalLight.position.set(0, 0, 1);
-		scene.add(directionalLight);
-
-		var grid = new THREE.GridHelper(50, 10, 0xffffff, 0xffffff);
-		grid.position.y = -1;
-		scene.add(grid);
-
-		$("#splash-canvas").append(renderer.domElement);
-	}
-
-
-
-
-/*
-      	// Coleccion de objetos de ThreeJS
-	    var scene;
-
-        //Dibuja los objetos que están en ña escena.
-        var renderer;
-
-
-        var camera;
-
-        var x = 0;
-        // Object3d
-
-        $(document).ready(function() {
-
-            var canvasSize = {
-                width: window.innerWidth,
-                height: window.innerHeight 
-            };
-
-            // Inicializamos el renderer
-            renderer = new THREE.WebGLRenderer();
-            renderer.setSize(canvasSize.width, canvasSize.height);
-
-            renderer.setClearColor(new THREE.Color(0,0,0));
-
-            // Inicializamos la camara
-            camera = new THREE.PerspectiveCamera( 75, canvasSize.width / canvasSize.height, 0.1, 100);
-
-            // Inicializamos la escena
-            scene = new THREE.Scene();
-
-            // Dibujamos el cubo
-
-            // La geometría en ThreeJS guarda la info de las vértices.
-            var geometry = new THREE.BoxGeometry(1,1,1);
-
-            // Material de nuestro objeto
-            var material = new THREE.MeshBasicMaterial({
-                color: new THREE.Color(0.7, 0.0, 0.0)
-            });
-
-            var shinyMaterial = new THREE.MeshPhongMaterial({
-                color: new THREE.Color(0.5,0.5,0.5),
-                specular: new THREE.Color(1,1,1),
-                shinyness: 500
-            });
-
-
-            var cube = new THREE.Mesh(geometry, material);
-
-            var cube2 = new THREE.Mesh(geometry, shinyMaterial);
-
-            // Nos movemos de en un solo eje
-            camera.position.z = 5;
-
-            // Nos movemos en x, y, z
-            //camera.position.set(0,0,2);
-
-            cube.name = "Cube01";
-            cube2.name = "Cube02";
-
-            scene.add(cube);
-            scene.add(cube2);
-
-            // Iluminación
-
-            var ambientLight = new THREE.AmbientLight(
-                new THREE.Color(1,1,1), 
-                0.4
-            );
-
-            var directionalLight = new THREE.DirectionalLight(
-                new THREE.Color(1,1,0), 
-                0.4
-            );
-
-            directionalLight.position.set(9,0,1);
-
-            scene.add(ambientLight);
-            scene.add(directionalLight);
-
-
-
-            // Le indicamos a ThreeJS donde queremos el canvas
-            $("#splash-canvas").append(renderer.domElement);
-
-            render();
+      //Set up anything important for the program.
+      function setupScene() 
+      {		
+        
+        //My loaders
+        GLTFLoader = new THREE.GLTFLoader();
+        audioLoader = new THREE.AudioLoader();
+        cubeLoader = new THREE.CubeTextureLoader();
+
+
+      
+	    	var visibleSize = { width: window.innerWidth, height: window.innerHeight};
+	    	clock = new THREE.Clock();		
+	    	scene = new THREE.Scene();
+	    	camera = new THREE.PerspectiveCamera(75, visibleSize.width / visibleSize.height, 0.1, 100);
+
+        scene.background = cubeLoader.load(urls);
+
+        //Initial camera positions.
+	    	camera.position.z = 2;
+	    	camera.position.y = 5;
+      
+	    	renderer = new THREE.WebGLRenderer( {precision: "mediump" } );
+	    	renderer.setClearColor(new THREE.Color(0, 0, 0));
+	    	renderer.setPixelRatio(visibleSize.width / visibleSize.height);
+	    	renderer.setSize(visibleSize.width, visibleSize.height);
+      
+	    	var ambientLight = new THREE.AmbientLight(new THREE.Color(1, 1, 1), 1.0);
+	    	scene.add(ambientLight);
+      
+	    	var directionalLight = new THREE.DirectionalLight(new THREE.Color(1, 1, 0), 0.4);
+	    	directionalLight.position.set(0, 0, 1);
+	    	scene.add(directionalLight);
+      
+	    	var grid = new THREE.GridHelper(50, 10, 0xffffff, 0xffffff);
+	    	grid.position.y = -1;
+	    	scene.add(grid);
+      
+        //Delect the ID of the to-be canvas tag
+	    	$("#splash-canvas").append(renderer.domElement);
+	    }
+
+      /////////////////////////////////////////////////
+      //Key inputs.
+
+      function onKeyDown(event) {
+		    keys[String.fromCharCode(event.keyCode)] = true;
+	    }
+	    function onKeyUp(event) {
+		    keys[String.fromCharCode(event.keyCode)] = false;
+	    }
+
+      /////////////////////////////////////////////////
+
+	    $(document).ready(function() 
+      {
+      
+        $( "#play-btn" ).click(function() {
+          $("#play-registry").toggle("fast", "swing", function(){
+            $("#select-stage").toggle();
+          });
         });
+      
+        $( "#okay-btn" ).click(function() {
+          $("#initial-info").toggle();
+          $("#select-stage").toggle();
+          $("#username").toggle();
+        });
+      
+        $( ".course-category" ).click(function() {
+          $( ".course-category" ).removeClass('selected');
+          $(this).toggleClass('selected');
+        });
+      
+	    	setupScene();
+      
+	    	rayCaster = new THREE.Raycaster();
+      
+	    	camera.rayos = [
+	    		new THREE.Vector3(1, 0, 0),
+	    		new THREE.Vector3(-1, 0, 0),
+	    		new THREE.Vector3(0, 0, 1),
+	    		new THREE.Vector3(0, 0, -1),
+	    	];
 
-        function render() {
-            requestAnimationFrame(render);
+        /////////////////////////////////////////////////
+        //Loading.
+        
+        //Load your shit here.
 
-            var cube01 = scene.getObjectByName("Cube01");
-            var cube02 = scene.getObjectByName("Cube02");
-
-            x += 0.02;
-            cube01.position.x += Math.sin(x)/20;
-            cube02.position.x -= Math.sin(x)/20;
-
-            cube01.rotation.y += THREE.Math.degToRad(1);
-            cube02.rotation.y -= THREE.Math.degToRad(1);
-
-
-
-            renderer.render(scene, camera);
+        /*    
+	    	loadOBJWithMTL("assets/", "box.obj", "box.mtl", (object) => {
+	    		object.position.z = -30;			
+        
+	    		var box2 = object.clone();
+	    		box2.position.x = 30;
+        
+	    		var box3 = object.clone();
+	    		box3.position.x = -30;
+        
+        
+	    		var box4 = object.clone();
+	    		box4.position.x = 0;
+	    		box4.position.z = 30;
+        
+	    		var box5 = box4.clone();
+	    		box5.position.x = 30;
+        
+	    		var box6 = box4.clone();
+	    		box6.position.x = -30;
+        
+	    		var box7 = object.clone();		
+	    		box7.position.z = 0;
+	    		box7.position.x = 50;
+	    		box7.rotation.y = THREE.Math.degToRad(90);
+        
+	    		var box8 = box7.clone();		
+	    		box8.position.x = -50;
+	    		box8.rotation.y = THREE.Math.degToRad(-90);
+        
+        
+	    		scene.add(object);
+	    		scene.add(box2);
+	    		scene.add(box3);
+	    		scene.add(box4);
+	    		scene.add(box5);
+	    		scene.add(box6);
+	    		scene.add(box7);
+	    		scene.add(box8);
+        
+	    		objetosConColision.push(object);
+	    		objetosConColision.push(box2);
+	    		objetosConColision.push(box3);
+	    		objetosConColision.push(box4);
+	    		objetosConColision.push(box5);
+	    		objetosConColision.push(box6);
+	    		objetosConColision.push(box7);
+	    		objetosConColision.push(box8);
+        
+        
+	    		isWorldReady[0] = true;
+	    	});
+      
+	    	loadOBJWithMTL("assets/", "jetski.obj", "jetski.mtl", (object) => {
+	    		object.position.z = -10;
+	    		object.rotation.x = THREE.Math.degToRad(-90);
+        
+	    		scene.add(object);
+	    		isWorldReady[1] = true;
+	    	});
+        */    
+      
+        GLTFLoader.load('assets/kitchen.glb', handle_load);
+      
+      
+      
+        function handle_load(gltf) {
+        
+          //Transformations
+          gltf.scene.scale.set(3.5,3.5,3);
+          gltf.scene.rotation.y=THREE.Math.degToRad(180);
+        
+          //Check it out in console
+          //console.log(gltf);
+        
+          mesh = gltf.scene;
+          console.log(mesh.children[0]);
+          mesh.children[0].material = new THREE.MeshLambertMaterial();
+        
+          //Add the name
+          mesh.name = "scenery";
+        
+          //Add to the scene.
+          scene.add( mesh );
+          mesh.position.z = -10;
+        
+          //Check as ready.
+          isWorldReady[0] = true;
+          isWorldReady[1] = true;
         }
-        */
+
+	    	render();
+        
+        /////////////////////////////////////////////////
+        //Event listeners
+
+        //Key inputs
+	    	document.addEventListener('keydown', onKeyDown);
+	    	document.addEventListener('keyup', onKeyUp);		
+        
+        /////////////////////////////////////////////////
+	    });
+    
+	    function loadOBJWithMTL(path, objFile, mtlFile, onLoadCallback) {
+	    	var mtlLoader = new THREE.MTLLoader();
+	    	mtlLoader.setPath(path);
+	    	mtlLoader.load(mtlFile, (materials) => {
+        
+	    		var objLoader = new THREE.OBJLoader();
+	    		objLoader.setMaterials(materials);
+	    		objLoader.setPath(path);
+	    		objLoader.load(objFile, (object) => {
+	    			onLoadCallback(object);
+	    		});
+        
+	    	});
+	    }
+    
+
+    
+    
+	    function render() {
+	    	requestAnimationFrame(render);
+	    	deltaTime = clock.getDelta();	
+      
+	    	var yaw = 0;
+	    	var forward = 0;
+      
+        /////////////////////////////////////////////////
+        
+        //Add the key presses.
+	    	if (keys["A"]) {
+	    		yaw = 1;
+	    	} else if (keys["D"]) {
+	    		yaw = -1;
+	    	}
+	    	if (keys["W"]) {
+	    		forward = -5;
+	    	} else if (keys["S"]) {
+	    		forward = 5;
+        }
+        
+        if (keys["R"]) {
+	    		$('#results-modal').modal('toggle');
+          $('#results-modal').modal('show');
+          $('#results-modal').modal('hide');
+        }
+        
+        if (keys["P"]) {
+	    		$('#pause-modal').modal('toggle');
+          $('#pause-modal').modal('show');
+          $('#pause-modal').modal('hide');
+	    	}
+      
+        /////////////////////////////////////////////////
+      
+        //Start if everything is ready.
+	    	if (isWorldReady[0] && isWorldReady[1]) {
+        
+          //Get by names
+          var scenery = scene.getObjectByName("scenery");
+        
+        
+	    		for (var i = 0; i < camera.rayos.length; i++) {
+          
+	    			// "Lanzamos" el rayo
+	    			// 1er Param: Desde donde lanzamos el rayo
+	    			// 2do Param: Direccion del rayo
+          
+	    			rayCaster.set(camera.position, camera.rayos[i]);
+          
+	    			// Verificamos si hay colision
+          
+	    			// 1er Param: Objetos con los que evaluar si hay colision
+	    			// 2do Param: Para detectar tambien colision con los hijos
+	    			var colision = rayCaster.intersectObjects(objetosConColision, true);
+          
+	    			if (colision.length > 0 && colision[0].distance < 1) {
+	    				// Si hay colision
+	    				console.log("Ya estas colisionando!");
+	    				forward = -4 * (forward);
+	    			}
+          
+          
+            scenery.rotation.y += THREE.Math.degToRad(0.1);
+	    		}
+        
+        
+	    		//if (camera.direction.x !== 0 || camera.direction.z !== 0){
+	    		camera.rotation.y += yaw * deltaTime;
+	    		camera.translateZ(forward * deltaTime);
+	    		//}
+          
+	    	}
+      
+      
+	    	renderer.render(scene, camera);
+	    }
+    
+
+
     </script>
 </head>
 <body>
