@@ -24,12 +24,33 @@
  
     <script src="{{ asset('js/supplementary/jquery.min.js') }}"></script>
     <script type="text/javascript" src="{{ asset('js/app.js') }}"></script>
+
     <script src="https://pagecdn.io/lib/three/110/three.min.js" crossorigin="anonymous"  ></script>
     <!--script type="text/javascript" src="{{ asset('js/three/three.js') }}"></script-->
     <script type="text/javascript" src="{{ asset('js/three/MTLLoader.js') }}"></script>
 	  <script type="text/javascript" src="{{ asset('js/three/OBJLoader.js') }}"></script>
     <script type="text/javascript" src="{{ asset('js/three/GLTFLoader.js') }}"></script>
  
+    <script type="application/x-glsl" id="sky-vertex">  
+varying vec2 vUV;
+
+void main() {  
+  vUV = uv;
+  vec4 pos = vec4(position, 1.0);
+  gl_Position = projectionMatrix * modelViewMatrix * pos;
+}
+</script>
+
+<script type="application/x-glsl" id="sky-fragment">  
+uniform sampler2D texture;  
+varying vec2 vUV;
+
+void main() {  
+  vec4 sample = texture2D(texture, vUV);
+  gl_FragColor = vec4(sample.xyz, sample.w);
+}
+</script>  
+
     <script type="module">
 
       /////////////////////////////////////////////////
@@ -56,16 +77,22 @@
       var GLTFLoader;
       var audioLoader;                              //EXPERIMENTAL. Trying to have an audio player.
       var cubeLoader;
+      var textureLoader;
 
       //Flags
       var isWorldReady = [ false, false ];          //Checks if everything is loaded correctly.
     
-      //URLS
+      //URL bundles
       var urls = [ 
         'assets/posx.jpg', 'assets/negx.jpg', 
         'assets/posy.jpg', 'assets/negy.jpg', 
         'assets/posz.jpg', 'assets/negz.jpg'
       ];
+
+      //Shader stuff
+
+      //Materials
+      var glslMaterial;
 
       /////////////////////////////////////////////////
       //Obligatory starter shit.
@@ -78,35 +105,83 @@
         GLTFLoader = new THREE.GLTFLoader();
         audioLoader = new THREE.AudioLoader();
         cubeLoader = new THREE.CubeTextureLoader();
+        textureLoader = new THREE.TextureLoader();
 
-
-      
 	    	var visibleSize = { width: window.innerWidth, height: window.innerHeight};
 	    	clock = new THREE.Clock();		
 	    	scene = new THREE.Scene();
-	    	camera = new THREE.PerspectiveCamera(75, visibleSize.width / visibleSize.height, 0.1, 100);
+	    	camera = new THREE.PerspectiveCamera(75, visibleSize.width / visibleSize.height, 0.1, 500);
 
-        scene.background = cubeLoader.load(urls);
+        //scene.background = cubeLoader.load(urls);
 
         //Initial camera positions.
 	    	camera.position.z = 2;
 	    	camera.position.y = 5;
       
+        ////////////////////
+        //Renderer settings
+
 	    	renderer = new THREE.WebGLRenderer( {precision: "mediump" } );
-	    	renderer.setClearColor(new THREE.Color(0, 0, 0));
+	    	//renderer.setClearColor(new THREE.Color(0, 0, 0));
+        renderer.toneMapping = THREE.ReinhardToneMapping;
+        renderer.toneMappingExposure = 1.3;
+        renderer.shadowMap.enabled = true;
 	    	renderer.setPixelRatio(visibleSize.width / visibleSize.height);
 	    	renderer.setSize(visibleSize.width, visibleSize.height);
+
+        ////////////////////
+        //Lighting
+
+        //variables
+        var ambientLightIntensity = 0.5;
       
-	    	var ambientLight = new THREE.AmbientLight(new THREE.Color(1, 1, 1), 1.0);
-	    	scene.add(ambientLight);
-      
-	    	var directionalLight = new THREE.DirectionalLight(new THREE.Color(1, 1, 0), 0.4);
-	    	directionalLight.position.set(0, 0, 1);
+        //Setup
+	    	var ambientLight = new THREE.AmbientLight(new THREE.Color(1, 1, 0.9), ambientLightIntensity);
+	    	var directionalLight = new THREE.DirectionalLight(new THREE.Color(1, 1, 0), 0.3);
+        directionalLight.castshadow = true;
+        directionalLight.position.set(0, 0, 1);
+        var spotLight = new THREE.SpotLight(0xffa95c, 2);
+        spotLight.position.set(0, 15, 0);
+        spotLight.castshadow = true;
+        var hemiLight = new THREE.HemisphereLight(0xffeeb1, 0x080820, 4);
+        
+        //Adding
+        scene.add(spotLight);
+        scene.add(ambientLight);
 	    	scene.add(directionalLight);
+        scene.add(hemiLight);
       
+        ////////////////////
+        //DEBUG: Grid
+
+        //Adds the grid
 	    	var grid = new THREE.GridHelper(50, 10, 0xffffff, 0xffffff);
 	    	grid.position.y = -1;
 	    	scene.add(grid);
+
+        ////////////////////
+        //Materials
+        var geometry = new THREE.SphereGeometry(100, 60, 40);  
+
+        
+var uniforms = {  
+  texture: { type: 't', value: textureLoader.load( 'assets/posy.jpg' ) }
+};
+
+var material = new THREE.ShaderMaterial( {  
+  uniforms:       uniforms,
+  vertexShader:   document.getElementById('sky-vertex').textContent,
+  fragmentShader: document.getElementById('sky-fragment').textContent
+});
+material.side = THREE.BackSide;
+var skyBox = new THREE.Mesh(geometry, material);  
+
+skyBox.scale.set(1, 1, 1);  
+skyBox.eulerOrder = 'XZY';  
+skyBox.renderDepth = 1000.0;  
+scene.add(skyBox);  
+
+        ////////////////////
       
         //Delect the ID of the to-be canvas tag
 	    	$("#splash-canvas").append(renderer.domElement);
@@ -222,7 +297,7 @@
 	    	});
         */    
       
-        GLTFLoader.load('assets/kitchen.glb', handle_load);
+        GLTFLoader.load('assets/kitchenNoFloor.glb', handle_load);
       
       
       
@@ -236,15 +311,20 @@
           //console.log(gltf);
         
           mesh = gltf.scene;
-          console.log(mesh.children[0]);
+          //console.log(mesh.children[0]);
           mesh.children[0].material = new THREE.MeshLambertMaterial();
         
           //Add the name
           mesh.name = "scenery";
         
           //Add to the scene.
+          mesh.traverse(n => {
+            if(n.isMesh) {
+              n.castShadow = true;
+              n.receiveShadow = true;
+            }
+          });
           scene.add( mesh );
-          mesh.position.z = -10;
         
           //Check as ready.
           isWorldReady[0] = true;
@@ -278,10 +358,10 @@
 	    	});
 	    }
     
-
-    
-    
-	    function render() {
+      /////////////////////////////////////////////////
+	    //Renderer loop
+      
+      function render() {
 	    	requestAnimationFrame(render);
 	    	deltaTime = clock.getDelta();	
       
