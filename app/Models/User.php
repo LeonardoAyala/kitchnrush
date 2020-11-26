@@ -27,6 +27,9 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'profile_photo_url',
+        'social_id',
+        'social_type',
     ];
 
     /**
@@ -55,7 +58,14 @@ class User extends Authenticatable
      *
      * @var array
      */
+    
     protected $appends = [
         'profile_photo_url',
     ];
+    
+
+    public function playedGames()
+    {
+        return $this->hasMany('App\Models\PlayedGame');
+    }
 }

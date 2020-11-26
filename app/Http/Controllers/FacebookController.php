@@ -23,7 +23,52 @@ class FacebookController extends Controller
      */
     public function handleProviderCallback()
     {
-        $user = Socialite::driver('facebook')->user();
+    
+        try {
+     
+            $user = Socialite::driver('facebook')->stateless()->user();
+      
+            $finduser = User::where('social_id', $user->id)->first();
+      
+            if($finduser){
+      
+                Auth::login($finduser);
+     
+                return redirect('/');
+      
+            }else{
+                $newUser = User::create([
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'social_id'=> $user->id,
+                    'social_type'=> 'facebook',
+                    'password' => encrypt('my-facebook'),
+                    'profile_photo_path' => $user->avatar
+                ]);
+     
+                Auth::login($newUser);
+      
+                return redirect('/test');
+            }
+     
+        } catch (Exception $e) {
+            dd($e->getMessage());
+        }
+
+
+
+/*
+            $newUser = User::create([
+                'name' => $user->name,
+                'email' => $user->email,
+                'password' => encrypt('fuch'),
+                'profile_photo_path' => $user->avatar
+            ]);
+ */
+/*
+        return dd($user->avatar);
+        return redirect('/test');
+*/
 
         // $user->token;
     }
