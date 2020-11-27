@@ -4,6 +4,7 @@
     <title>Kitch 'n Rush</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     
     <link href="https://fonts.googleapis.com/css?family=Poppins:300,400,500,600,700,800,900" rel="stylesheet">
 
@@ -32,24 +33,24 @@
     <script type="text/javascript" src="{{ asset('js/three/GLTFLoader.js') }}"></script>
  
     <script type="application/x-glsl" id="sky-vertex">  
-varying vec2 vUV;
+      varying vec2 vUV;
 
-void main() {  
-  vUV = uv;
-  vec4 pos = vec4(position, 1.0);
-  gl_Position = projectionMatrix * modelViewMatrix * pos;
-}
-</script>
+      void main() {  
+        vUV = uv;
+        vec4 pos = vec4(position, 1.0);
+        gl_Position = projectionMatrix * modelViewMatrix * pos;
+      }
+    </script>
 
-<script type="application/x-glsl" id="sky-fragment">  
-uniform sampler2D texture;  
-varying vec2 vUV;
+    <script type="application/x-glsl" id="sky-fragment">  
+      uniform sampler2D texture;  
+      varying vec2 vUV;
 
-void main() {  
-  vec4 sample = texture2D(texture, vUV);
-  gl_FragColor = vec4(sample.xyz, sample.w);
-}
-</script>  
+      void main() {  
+        vec4 sample = texture2D(texture, vUV);
+        gl_FragColor = vec4(sample.xyz, sample.w);
+      }
+    </script>  
 
     <script type="module">
 
@@ -89,10 +90,18 @@ void main() {
         'assets/posz.jpg', 'assets/negz.jpg'
       ];
 
-      //Shader stuff
-
       //Materials
       var glslMaterial;
+
+      //Gamepad
+      var gamepad;
+
+      //Audio
+      var listener;
+      var sound;
+
+      //Particles
+      var cloudParticles = [];
 
       /////////////////////////////////////////////////
       //Obligatory starter shit.
@@ -100,18 +109,27 @@ void main() {
       //Set up anything important for the program.
       function setupScene() 
       {		
-        
+        ////////////////////
+        //Basic settings
+
         //My loaders
         GLTFLoader = new THREE.GLTFLoader();
         audioLoader = new THREE.AudioLoader();
         cubeLoader = new THREE.CubeTextureLoader();
         textureLoader = new THREE.TextureLoader();
 
+        //Set up canvas and camera
 	    	var visibleSize = { width: window.innerWidth, height: window.innerHeight};
 	    	clock = new THREE.Clock();		
 	    	scene = new THREE.Scene();
 	    	camera = new THREE.PerspectiveCamera(75, visibleSize.width / visibleSize.height, 0.1, 500);
 
+        //Audio
+        listener = new THREE.AudioListener();
+        sound = new THREE.PositionalAudio( listener );
+        camera.add( listener );
+
+        //HDRI
         //scene.background = cubeLoader.load(urls);
 
         //Initial camera positions.
@@ -163,28 +181,29 @@ void main() {
         //Materials
         var geometry = new THREE.SphereGeometry(100, 60, 40);  
 
-        
-var uniforms = {  
-  texture: { type: 't', value: textureLoader.load( 'assets/posy.jpg' ) }
-};
+        var uniforms = {  
+          texture: { type: 't', value: textureLoader.load( 'assets/posy.jpg' ) }
+        };
 
-var material = new THREE.ShaderMaterial( {  
-  uniforms:       uniforms,
-  vertexShader:   document.getElementById('sky-vertex').textContent,
-  fragmentShader: document.getElementById('sky-fragment').textContent
-});
-material.side = THREE.BackSide;
-var skyBox = new THREE.Mesh(geometry, material);  
+        var material = new THREE.ShaderMaterial( {  
+          uniforms:       uniforms,
+          vertexShader:   document.getElementById('sky-vertex').textContent,
+          fragmentShader: document.getElementById('sky-fragment').textContent
+        });
+        material.side = THREE.BackSide;
+        var skyBox = new THREE.Mesh(geometry, material);  
 
-skyBox.scale.set(1, 1, 1);  
-skyBox.eulerOrder = 'XZY';  
-skyBox.renderDepth = 1000.0;  
-scene.add(skyBox);  
+        skyBox.scale.set(1, 1, 1);  
+        skyBox.eulerOrder = 'XZY';  
+        skyBox.renderDepth = 1000.0;  
+        scene.add(skyBox);  
 
         ////////////////////
       
         //Delect the ID of the to-be canvas tag
 	    	$("#splash-canvas").append(renderer.domElement);
+
+        window.addEventListener( 'resize', onWindowResize, false );
 	    }
 
       /////////////////////////////////////////////////
@@ -214,9 +233,60 @@ scene.add(skyBox);
           $("#username").toggle();
         });
       
-        $( ".course-category" ).click(function() {
+        $( ".course-category" ).click(function() 
+        {
+
           $( ".course-category" ).removeClass('selected');
           $(this).toggleClass('selected');
+  
+          if(sound.isPlaying)
+            sound.stop();
+  
+          switch($(this).attr('id')) 
+          {
+            case "cc_murrica":
+              
+              audioLoader.load( 'assets/turkey.mp3', function( buffer ) 
+              {
+
+          			sound.setBuffer( buffer );
+          			sound.setLoop( true );
+          			sound.setVolume( 5 );
+          			sound.play();
+
+              });
+              break;
+
+            case "cc_italy":
+            
+              audioLoader.load( 'assets/funi.mp3', function( buffer ) 
+              {
+
+          			sound.setBuffer( buffer );
+          			sound.setLoop( true );
+          			sound.setVolume( 5 );
+          			sound.play();
+                
+              });
+              break;
+
+            case "cc_germany":
+              
+              audioLoader.load( 'assets/ievan.mp3', function( buffer ) 
+              {
+
+                sound.setBuffer( buffer );
+                sound.setLoop( true );
+                sound.setVolume( 5 );
+                sound.play();
+
+              });
+              break;
+
+            default:
+              // code block
+          };
+
         });
       
 	    	setupScene();
@@ -235,6 +305,32 @@ scene.add(skyBox);
         
         //Load your shit here.
 
+        textureLoader.load("assets/cloud.png", function(texture)
+        {
+          let cloudGeo = new THREE.PlaneBufferGeometry(1, 1);
+          let cloudMaterial = new THREE.MeshLambertMaterial({
+            map:texture,
+            transparent: true
+          });
+
+
+          for(let p=0; p<50; p++)
+          {
+            let cloud = new THREE.Mesh(cloudGeo, cloudMaterial);
+            cloud.scale.set(1.5,1.5,1.5);
+            cloud.position.set(
+              Math.random()*2 -0, 
+              6,
+              Math.random()*2 -0
+            );
+            cloud.rotation.x = 1.16;
+            cloud.rotation.y = -0.12;
+            cloud.rotation.x = Math.random()*2*Math.PI;
+            cloud.material.opacity = 0.55;
+            cloudParticles.push(cloud);
+            scene.add(cloud);
+          }
+        });
         /*    
 	    	loadOBJWithMTL("assets/", "box.obj", "box.mtl", (object) => {
 	    		object.position.z = -30;			
@@ -297,7 +393,7 @@ scene.add(skyBox);
 	    	});
         */    
       
-        GLTFLoader.load('assets/kitchenNoFloor.glb', handle_load);
+        GLTFLoader.load('assets/kitchen.glb', handle_load);
       
       
       
@@ -330,6 +426,7 @@ scene.add(skyBox);
           isWorldReady[0] = true;
           isWorldReady[1] = true;
         }
+
 
 	    	render();
         
@@ -367,18 +464,34 @@ scene.add(skyBox);
       
 	    	var yaw = 0;
 	    	var forward = 0;
+
+        cloudParticles.forEach(p => {
+          p.rotation.z -=0.1;
+          p.rotation.x -=0.02;
+        });
       
         /////////////////////////////////////////////////
+        //Music
+
+
+
+        /////////////////////////////////////////////////
+        //Controls
         
-        //Add the key presses.
-	    	if (keys["A"]) {
+        //Add the keyboard presses.
+	    	if (keys["A"]) 
+        {
 	    		yaw = 1;
-	    	} else if (keys["D"]) {
+
+	    	} else if (keys["D"]) 
+        {
 	    		yaw = -1;
 	    	}
-	    	if (keys["W"]) {
+	    	if (keys["W"]) 
+        {
 	    		forward = -5;
-	    	} else if (keys["S"]) {
+	    	} else if (keys["S"]) 
+        {
 	    		forward = 5;
         }
         
@@ -393,12 +506,61 @@ scene.add(skyBox);
           $('#pause-modal').modal('show');
           $('#pause-modal').modal('hide');
 	    	}
+
+        gamepad=navigator.getGamepads ? navigator.getGamepads() : (navigator.webkitGetGamepads ? navigator.webkitGetGamepads : []);
+				if (gamepad.length>0) 
+        {
+					gamepad=gamepad[0];
+				}
+
+				if (gamepad) 
+        {
+					if (gamepad.connected) 
+          {
+            if (gamepad.axes[0]>.5)                 //LStick right
+            {
+							yaw = -5;
+						}
+						if (gamepad.axes[1]>.5)                 //LStick down
+            {
+							forward = 8;
+						}
+						if (gamepad.axes[0]<-.5)                //LStick left
+            {
+							yaw = 5;
+						}
+						if (gamepad.axes[1]<-.5)                //LStick up
+            {
+							forward = -8;
+						}
+
+            if (gamepad.buttons[0].pressed)         //A
+            {
+            }
+            if (gamepad.buttons[0].pressed)         //B
+            {
+            }
+            if (gamepad.buttons[0].pressed)         //X
+            {
+            }
+            if (gamepad.buttons[0].pressed)         //Y
+            {
+            }
+            if (gamepad.buttons[0].pressed)         //RTrigger
+            {
+            }
+            if (gamepad.buttons[0].pressed)         //LTrigger
+            {
+            }
+          }
+        }
       
         /////////////////////////////////////////////////
       
         //Start if everything is ready.
 	    	if (isWorldReady[0] && isWorldReady[1]) {
         
+        /*
           //Get by names
           var scenery = scene.getObjectByName("scenery");
         
@@ -426,7 +588,7 @@ scene.add(skyBox);
           
             scenery.rotation.y += THREE.Math.degToRad(0.1);
 	    		}
-        
+        */
         
 	    		//if (camera.direction.x !== 0 || camera.direction.z !== 0){
 	    		camera.rotation.y += yaw * deltaTime;
@@ -439,8 +601,17 @@ scene.add(skyBox);
 	    	renderer.render(scene, camera);
 	    }
     
+      /////////////////////////////////////////////////
+      //Adittional functions
 
+      //Resize canvas in real time
+			function onWindowResize() {
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+				renderer.setSize( window.innerWidth, window.innerHeight );
+			}
 
+      /////////////////////////////////////////////////
     </script>
 </head>
 <body>
@@ -604,7 +775,8 @@ scene.add(skyBox);
 
             <div class="form-group row">
               <div class="col-md-6 col-lg-6">
-                <button type="button" data-toggle="modal" data-target="#myModal" class="btn btn-primary fill submit"><span class="fa fa-facebook"></span>  Sign In</button>
+              <a href="{{ route('login-facebook')}}" class="btn btn-primary fill submit"><span class="fa fa-facebook"></span>  Sign In</a>
+             
               </div>
               <div class="col-md-6 col-lg-6">
                 <button type="button" data-toggle="modal" data-target="#myModal" class="btn btn-danger fill submit"><span class="fa fa-google"></span> Sign In</button>
@@ -641,7 +813,7 @@ scene.add(skyBox);
 
     <div class="row justify-content-center">
       <div class="col-md-4 col-lg-4">
-        <a href="#" class="course-category img d-flex align-items-center justify-content-center" style="background-image: url({{ asset('images/schnitzel.jpg') }});">
+        <a href="#" id="cc_germany" class="course-category img d-flex align-items-center justify-content-center" style="background-image: url({{ asset('images/schnitzel.jpg') }});">
            <div class="text w-100 text-center">
               <h3>Germany</h3>
               <span>Schnitzel</span>
@@ -649,7 +821,7 @@ scene.add(skyBox);
         </a>
       </div>
       <div class="col-md-4 col-lg-4">
-        <a href="#" class="course-category img d-flex align-items-center justify-content-center" style="background-image: url({{ asset('images/pancakes.jpg') }});">
+        <a href="#" id="cc_murrica" class="course-category img d-flex align-items-center justify-content-center" style="background-image: url({{ asset('images/pancakes.jpg') }});">
            <div class="text w-100 text-center">
               <h3>'Murrica</h3>
               <span>Pancakes</span>
@@ -657,7 +829,7 @@ scene.add(skyBox);
         </a>
       </div>
       <div class="col-md-4 col-lg-4">
-        <a href="#" class="course-category img d-flex align-items-center justify-content-center" style="background-image: url({{ asset('images/ravioli.jpg') }});">
+        <a href="#" id="cc_italy" class="course-category img d-flex align-items-center justify-content-center" style="background-image: url({{ asset('images/ravioli.jpg') }});">
            <div class="text w-100 text-center">
               <h3>Italy</h3>
               <span>Ravioli</span>
@@ -1257,6 +1429,28 @@ scene.add(skyBox);
 <!-- loader -->
 <!--div id="ftco-loader" class="show fullscreen"><svg class="circular" width="48px" height="48px"><circle class="path-bg" cx="24" cy="24" r="22" fill="none" stroke-width="4" stroke="#eeeeee"/><circle class="path" cx="24" cy="24" r="22" fill="none" stroke-width="4" stroke-miterlimit="10" stroke="#F96D00"/></svg></div -->
 
+
+<!--script>
+  window.fbAsyncInit = function() {
+    FB.init({
+      appId      : '{your-app-id}',
+      cookie     : true,
+      xfbml      : true,
+      version    : 'v9.0'
+    });
+      
+    FB.AppEvents.logPageView();   
+      
+  };
+
+  (function(d, s, id){
+     var js, fjs = d.getElementsByTagName(s)[0];
+     if (d.getElementById(id)) {return;}
+     js = d.createElement(s); js.id = id;
+     js.src = "https://connect.facebook.net/en_US/sdk.js";
+     fjs.parentNode.insertBefore(js, fjs);
+   }(document, 'script', 'facebook-jssdk'));
+</script-->
 
     <script src="{{ asset('js/supplementary/jquery-migrate-3.0.1.min.js') }}"></script>
     <script src="{{ asset('js/supplementary/popper.min.js') }}"></script>

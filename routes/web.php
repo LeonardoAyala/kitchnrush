@@ -28,5 +28,5 @@ Route::middleware(['auth:sanctum', 'verified'])->get('/dashboard', function () {
 })->name('dashboard');
 
 
-Route::get('login/facebook', [FacebookController::class, 'redirectToProvider']);
+Route::get('login/facebook', [FacebookController::class, 'redirectToProvider'])->name('login-facebook');;
 Route::get('login/facebook/redirect', [FacebookController::class, 'handleProviderCallback']);
