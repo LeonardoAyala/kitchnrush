@@ -103,6 +103,9 @@
       //Particles
       var cloudParticles = [];
 
+      //Animation
+      var mixer;
+
       /////////////////////////////////////////////////
       //Obligatory starter shit.
         
@@ -122,7 +125,7 @@
 	    	var visibleSize = { width: window.innerWidth, height: window.innerHeight};
 	    	clock = new THREE.Clock();		
 	    	scene = new THREE.Scene();
-	    	camera = new THREE.PerspectiveCamera(75, visibleSize.width / visibleSize.height, 0.1, 500);
+	    	camera = new THREE.PerspectiveCamera(75, visibleSize.width / visibleSize.height, 0.1, 1000);
 
         //Audio
         listener = new THREE.AudioListener();
@@ -133,8 +136,9 @@
         //scene.background = cubeLoader.load(urls);
 
         //Initial camera positions.
-	    	camera.position.z = 2;
-	    	camera.position.y = 5;
+	    	camera.position.z = 5;
+	    	camera.position.y = 20;
+        camera.rotation.x = THREE.Math.degToRad(-70);
       
         ////////////////////
         //Renderer settings
@@ -193,7 +197,7 @@
         material.side = THREE.BackSide;
         var skyBox = new THREE.Mesh(geometry, material);  
 
-        skyBox.scale.set(1, 1, 1);  
+        skyBox.scale.set(10, 10, 10);  
         skyBox.eulerOrder = 'XZY';  
         skyBox.renderDepth = 1000.0;  
         scene.add(skyBox);  
@@ -392,6 +396,26 @@
 	    		isWorldReady[1] = true;
 	    	});
         */    
+
+
+        GLTFLoader.load( 'assets/scene.gltf', function ( gltf ) {
+				//	gltf.scene.rotation.y = 180;
+				//gltf.scene.scale.set(7,7,7);
+						//mixer2=new THREE.AnimationMixer(gltf.scene);
+						//mixer2.clipAction(gltf.animations[0]).play();
+            mixer = new THREE.AnimationMixer(gltf.scene);
+						mixer.clipAction(gltf.animations[0]).play();
+            gltf.scene.scale.set(0.05,0.05,0.05);
+            gltf.scene.position.set(0,10,0);
+            gltf.scene.name="character";
+						scene.add( gltf.scene );
+						
+
+            isWorldReady[0] = true;
+				}, undefined, function ( error ) {
+						console.error( error );
+				} );
+
       
         GLTFLoader.load('assets/kitchen.glb', handle_load);
       
@@ -423,7 +447,7 @@
           scene.add( mesh );
         
           //Check as ready.
-          isWorldReady[0] = true;
+
           isWorldReady[1] = true;
         }
 
@@ -470,6 +494,7 @@
           p.rotation.x -=0.02;
         });
       
+
         /////////////////////////////////////////////////
         //Music
 
@@ -559,9 +584,12 @@
       
         //Start if everything is ready.
 	    	if (isWorldReady[0] && isWorldReady[1]) {
-        
-        /*
+          mixer.update(deltaTime);
+
           //Get by names
+          var character = scene.getObjectByName("character");
+        /*
+          
           var scenery = scene.getObjectByName("scenery");
         
         
@@ -591,8 +619,12 @@
         */
         
 	    		//if (camera.direction.x !== 0 || camera.direction.z !== 0){
-	    		camera.rotation.y += yaw * deltaTime;
-	    		camera.translateZ(forward * deltaTime);
+	    		//camera.rotation.y += yaw * deltaTime;
+
+	    		//camera.translateZ(forward * deltaTime);
+          //character.rotation.y += yaw * deltaTime;
+          
+	    		character.translateX(yaw * deltaTime);
 	    		//}
           
 	    	}
