@@ -5,7 +5,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    
+
     <link href="https://fonts.googleapis.com/css?family=Poppins:300,400,500,600,700,800,900" rel="stylesheet">
 
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
@@ -32,6 +32,9 @@
 	  <script type="text/javascript" src="{{ asset('js/three/OBJLoader.js') }}"></script>
     <script type="text/javascript" src="{{ asset('js/three/GLTFLoader.js') }}"></script>
  
+    @livewireStyles
+    @livewireScripts
+
     <script type="application/x-glsl" id="sky-vertex">  
       varying vec2 vUV;
 
@@ -64,6 +67,7 @@
 	    var controls;
 	    var objects = [];
 	    var clock;
+      var timer;
 	    var deltaTime;	
 	    var keys = {};
 
@@ -82,6 +86,7 @@
 
       //Flags
       var isWorldReady = [ false, false ];          //Checks if everything is loaded correctly.
+      var isPlayerReady = [ false, false ];
     
       //URL bundles
       var urls = [ 
@@ -123,7 +128,8 @@
 
         //Set up canvas and camera
 	    	var visibleSize = { width: window.innerWidth, height: window.innerHeight};
-	    	clock = new THREE.Clock();		
+	    	clock = new THREE.Clock();	
+        timer = new THREE.Clock();	
 	    	scene = new THREE.Scene();
 	    	camera = new THREE.PerspectiveCamera(75, visibleSize.width / visibleSize.height, 0.1, 1000);
 
@@ -137,7 +143,7 @@
 
         //Initial camera positions.
 	    	camera.position.z = 5;
-	    	camera.position.y = 20;
+	    	camera.position.y = 40;
         camera.rotation.x = THREE.Math.degToRad(-70);
       
         ////////////////////
@@ -235,6 +241,8 @@
           $("#initial-info").toggle();
           $("#select-stage").toggle();
           $("#username").toggle();
+
+          isPlayerReady[0] = true;
         });
       
         $( ".course-category" ).click(function() 
@@ -255,7 +263,7 @@
 
           			sound.setBuffer( buffer );
           			sound.setLoop( true );
-          			sound.setVolume( 5 );
+          			sound.setVolume( 1 );
           			sound.play();
 
               });
@@ -268,7 +276,7 @@
 
           			sound.setBuffer( buffer );
           			sound.setLoop( true );
-          			sound.setVolume( 5 );
+          			sound.setVolume( 1 );
           			sound.play();
                 
               });
@@ -276,12 +284,12 @@
 
             case "cc_germany":
               
-              audioLoader.load( 'assets/ievan.mp3', function( buffer ) 
+              audioLoader.load( 'assets/yodel.mp3', function( buffer ) 
               {
 
                 sound.setBuffer( buffer );
                 sound.setLoop( true );
-                sound.setVolume( 5 );
+                sound.setVolume( 1 );
                 sound.play();
 
               });
@@ -397,18 +405,22 @@
 	    	});
         */    
 
-
+        var character;
         GLTFLoader.load( 'assets/scene.gltf', function ( gltf ) {
 				//	gltf.scene.rotation.y = 180;
 				//gltf.scene.scale.set(7,7,7);
 						//mixer2=new THREE.AnimationMixer(gltf.scene);
 						//mixer2.clipAction(gltf.animations[0]).play();
-            mixer = new THREE.AnimationMixer(gltf.scene);
+
+            character = gltf.scene;
+            mixer = new THREE.AnimationMixer(character);
 						mixer.clipAction(gltf.animations[0]).play();
-            gltf.scene.scale.set(0.05,0.05,0.05);
-            gltf.scene.position.set(0,10,0);
-            gltf.scene.name="character";
-						scene.add( gltf.scene );
+            character.scale.set(0.05,0.05,0.05);
+            character.position.set(0, 10, -1);
+            character.name="character";
+
+            
+						scene.add( character );
 						
 
             isWorldReady[0] = true;
@@ -444,6 +456,8 @@
               n.receiveShadow = true;
             }
           });
+          mesh.add( character );
+
           scene.add( mesh );
         
           //Check as ready.
@@ -484,7 +498,9 @@
       
       function render() {
 	    	requestAnimationFrame(render);
-	    	deltaTime = clock.getDelta();	
+
+        deltaTime = clock.getDelta();	
+        
       
 	    	var yaw = 0;
 	    	var forward = 0;
@@ -506,10 +522,17 @@
         //Add the keyboard presses.
 	    	if (keys["A"]) 
         {
+
+          //window.Livewire.emit('increment');
 	    		yaw = 1;
+          keys["A"] = false;
 
 	    	} else if (keys["D"]) 
         {
+	    		$('#highscores-modal').modal('toggle');
+          $('#highscores-modal').modal('show');
+          $('#highscores-modal').modal('hide');
+
 	    		yaw = -1;
 	    	}
 	    	if (keys["W"]) 
@@ -588,8 +611,6 @@
 
           //Get by names
           var character = scene.getObjectByName("character");
-        /*
-          
           var scenery = scene.getObjectByName("scenery");
         
         
@@ -613,10 +634,28 @@
 	    				forward = -4 * (forward);
 	    			}
           
-          
-            scenery.rotation.y += THREE.Math.degToRad(0.1);
+          if(isPlayerReady[0] && isPlayerReady[1])
+          {
+            scenery.rotation.y += THREE.Math.degToRad(0.005 + 0.001*(Math.floor(timer.getElapsedTime())/6));
+
+
+            //Timer
+            var minutes = Math.floor(Math.floor(timer.getElapsedTime()) / 60);
+            var seconds = Math.floor(timer.getElapsedTime()) - minutes*60;
+            var secondsString = "";
+            if(seconds <= 10){
+              secondsString =  "0" + seconds.toString();
+            }
+            else{
+              secondsString = seconds.toString();
+            }
+
+            sound.setPlaybackRate(1 + 0.1*(Math.floor(timer.getElapsedTime())/20));
+            $("#counter").text(minutes + ":" + secondsString);
+          }
+
 	    		}
-        */
+        
         
 	    		//if (camera.direction.x !== 0 || camera.direction.z !== 0){
 	    		//camera.rotation.y += yaw * deltaTime;
@@ -643,8 +682,18 @@
 				renderer.setSize( window.innerWidth, window.innerHeight );
 			}
 
+      window.addEventListener("gamepadconnected", function(e) {
+        console.log("Gamepad connected at index %d: %s. %d buttons, %d axes.",
+        e.gamepad.index, e.gamepad.id,
+        e.gamepad.buttons.length, e.gamepad.axes.length);
+        isPlayerReady[1] = true;
+      });
+
       /////////////////////////////////////////////////
     </script>
+
+
+
 </head>
 <body>
  <nav class="navbar navbar-expand-lg navbar-dark ftco_navbar bg-dark ftco-navbar-light" id="ftco-navbar">
@@ -656,7 +705,16 @@
 
    <div class="collapse navbar-collapse" id="ftco-nav">
        <ul class="navbar-nav ml-auto">
-         <li id="username" style="display: none;" class="nav-item"><a href="instructor.html" class="nav-link">xXx_PussySlayer_xXx</a></li>
+       <li  class="p_logged nav-item"><p id="counter" class="nav-link"></p></li>
+
+      @auth
+        <li id="username" style="display: none;" class="p_logged nav-item"><a href="instructor.html" class="nav-link">{{ Auth::user()->name }}</a></li>
+      @endauth
+
+    @guest
+        <li id="username" style="display: none;" class="p_guest nav-item"><a href="instructor.html" class="nav-link">Guest</a></li>
+    @endguest
+         
          <!--li class="nav-item"><a href="blog.html" class="nav-link">Options</a></li-->
          <li class="nav-item"><a href="#" data-toggle="modal" data-target="#help-modal" class="nav-link">Help</a></li>
      </ul>
@@ -670,7 +728,7 @@
   <div class=" overlay" id="splash-canvas"></div>
   <div class="container" id="initial-info">
     <div class="row no-gutters slider-text js-fullheight align-items-center" data-scrollax-parent="true">
-      <div class="col-md-7 ftco-animate">
+      <div class="col-md-7 ftco-animate">      
         <span class="subheading">Welcome to Kitch 'n Rush!</span>
         <h1 class="mb-4">Online Speedrun cooking simulator.</h1>
         <p class="caps">Start playing by creating an account or play as a guest. Select one mode ad voila! Fun never ends.</p>
@@ -679,6 +737,37 @@
 </div>
 </div>
 </div>
+
+ <!-- Modal -->
+ <div class="modal fade" id="highscores-modal" role="dialog">
+    <div class="modal-dialog">
+    
+      <!-- Modal content-->
+      <div class="modal-content">
+        <div class="modal-header">
+
+          <h4 class="modal-title">highscores</h4>
+          <button type="button" class="close" data-dismiss="modal">&times;</button>
+        </div>
+        <div class="modal-body">
+                <div class="row justify-content-center pb-4">
+          <div class="col-md-12 heading-section text-center ftco-animate">
+          	<span class="subheading">Congratulations!</span>
+            <h2 class="mb-4">You Won!</h2>
+
+            <livewire:highscore />
+
+        </div>
+    </div>
+        <p>With: 0.00 seconds to spare.</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-default purple" data-dismiss="modal">Neat!</button>
+        </div>
+      </div>
+      
+    </div>
+  </div>
 
   <!-- Modal -->
   <div class="modal fade" id="results-modal" role="dialog">
@@ -1496,6 +1585,7 @@
     <script src="{{ asset('js/supplementary/bootstrap-datepicker.js') }}"></script>
     <script src="{{ asset('js/supplementary/scrollax.min.js') }}"></script>
     <script src="{{ asset('js/supplementary/main.js') }}"></script>
+
 
 
 </body>
