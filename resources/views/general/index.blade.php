@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <title>Kitch 'n Rush</title>
     <meta charset="utf-8">
@@ -11,32 +12,33 @@
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
 
     <link rel="stylesheet" href="{{ asset('css/supplementary/animate.css') }}">
-    
+
     <link rel="stylesheet" href="{{ asset('css/supplementary/owl.carousel.min.css') }}" type="text/css">
     <link rel="stylesheet" href="{{ asset('css/supplementary/owl.theme.default.min.css') }}" type="text/css">
     <link rel="stylesheet" href="{{ asset('css/supplementary/magnific-popup.css') }}">
 
     <link rel="stylesheet" href="{{ asset('css/supplementary/bootstrap-datepicker.css') }}">
     <link rel="stylesheet" href="{{ asset('css/supplementary/jquery.timepicker.css') }}">
-    
+
     <link rel="stylesheet" href="{{ asset('css/supplementary/flaticon.css') }}">
     <link rel="stylesheet" href="{{ asset('css/supplementary/style.css') }}">
     <link rel="stylesheet" href="{{ asset('css/custom.css') }}">
- 
+
     <script src="{{ asset('js/supplementary/jquery.min.js') }}"></script>
     <script type="text/javascript" src="{{ asset('js/app.js') }}"></script>
 
-    <script src="https://pagecdn.io/lib/three/110/three.min.js" crossorigin="anonymous"  ></script>
+    <script src="https://pagecdn.io/lib/three/110/three.min.js" crossorigin="anonymous"></script>
     <!--script type="text/javascript" src="{{ asset('js/three/three.js') }}"></script-->
     <script type="text/javascript" src="{{ asset('js/three/MTLLoader.js') }}"></script>
-	  <script type="text/javascript" src="{{ asset('js/three/OBJLoader.js') }}"></script>
+    <script type="text/javascript" src="{{ asset('js/three/OBJLoader.js') }}"></script>
     <script type="text/javascript" src="{{ asset('js/three/GLTFLoader.js') }}"></script>
- 
+    <script type="text/javascript" src="{{ asset('js/three/OrbitControls.js') }}"></script>
+
     @livewireStyles
     @livewireScripts
 
-    <script type="application/x-glsl" id="sky-vertex">  
-      varying vec2 vUV;
+    <script type="application/x-glsl" id="sky-vertex">
+        varying vec2 vUV;
 
       void main() {  
         vUV = uv;
@@ -45,78 +47,80 @@
       }
     </script>
 
-    <script type="application/x-glsl" id="sky-fragment">  
-      uniform sampler2D texture;  
+    <script type="application/x-glsl" id="sky-fragment">
+        uniform sampler2D texture;  
       varying vec2 vUV;
 
       void main() {  
         vec4 sample = texture2D(texture, vUV);
         gl_FragColor = vec4(sample.xyz, sample.w);
       }
-    </script>  
+    </script>
 
     <script type="module">
+    /////////////////////////////////////////////////
+    //Universal variables.
 
-      /////////////////////////////////////////////////
-      //Universal variables.
+    //Default
+    var scene; //Object that draws the scene.
+    var camera; //Object that sees the scene.
+    var renderer;
+    var controls;
+    var objects = [];
+    var clock;
+    var timer;
+    var deltaTime;
+    var keys = {};
 
-      //Default
-      var scene;                                    //Object that draws the scene.
-	    var camera;                                   //Object that sees the scene.
-	    var renderer;
-	    var controls;
-	    var objects = [];
-	    var clock;
-      var timer;
-	    var deltaTime;	
-	    var keys = {};
+    //Custom
+    var mesh; //EXPERIMENTAL. Trying to build an universal mesh buffer. 
 
-      //Custom
-      var mesh;                                     //EXPERIMENTAL. Trying to build an universal mesh buffer. 
-    
-      //Colisions
-	    var rayCaster;
-	    var objetosConColision = [];
-    
-      //Loaders
-      var GLTFLoader;
-      var audioLoader;                              //EXPERIMENTAL. Trying to have an audio player.
-      var cubeLoader;
-      var textureLoader;
+    //Colisions
+    var rayCaster;
+    var objetosConColision = [];
 
-      //Flags
-      var isWorldReady = [ false, false ];          //Checks if everything is loaded correctly.
-      var isPlayerReady = [ false, false ];
-    
-      //URL bundles
-      var urls = [ 
-        'assets/posx.jpg', 'assets/negx.jpg', 
-        'assets/posy.jpg', 'assets/negy.jpg', 
+    //Loaders
+    var GLTFLoader;
+    var audioLoader; //EXPERIMENTAL. Trying to have an audio player.
+    var cubeLoader;
+    var textureLoader;
+
+    //Game variables
+
+
+    //Flags
+    var isWorldReady = [false, false, false]; //Checks if everything is loaded correctly.
+    var isPlayerReady = [false, false];
+
+    //URL bundles
+    var urls = [
+        'assets/posx.jpg', 'assets/negx.jpg',
+        'assets/posy.jpg', 'assets/negy.jpg',
         'assets/posz.jpg', 'assets/negz.jpg'
-      ];
+    ];
 
-      //Materials
-      var glslMaterial;
+    //Materials
+    var glslMaterial;
 
-      //Gamepad
-      var gamepad;
+    //Gamepad
+    var gamepad;
 
-      //Audio
-      var listener;
-      var sound;
+    //Audio
+    var listener;
+    var sound;
 
-      //Particles
-      var cloudParticles = [];
+    //Particles
+    var cloudParticles = [];
 
-      //Animation
-      var mixer;
+    //Animation
+    var mixer;
+    var mixer2;
 
-      /////////////////////////////////////////////////
-      //Obligatory starter shit.
-        
-      //Set up anything important for the program.
-      function setupScene() 
-      {		
+    /////////////////////////////////////////////////
+    //Obligatory starter shit.
+
+    //Set up anything important for the program.
+    function setupScene() {
         ////////////////////
         //Basic settings
 
@@ -127,761 +131,863 @@
         textureLoader = new THREE.TextureLoader();
 
         //Set up canvas and camera
-	    	var visibleSize = { width: window.innerWidth, height: window.innerHeight};
-	    	clock = new THREE.Clock();	
-        timer = new THREE.Clock();	
-	    	scene = new THREE.Scene();
-	    	camera = new THREE.PerspectiveCamera(75, visibleSize.width / visibleSize.height, 0.1, 1000);
+        var visibleSize = {
+            width: window.innerWidth,
+            height: window.innerHeight
+        };
+        clock = new THREE.Clock();
+        timer = new THREE.Clock();
+        scene = new THREE.Scene();
+        camera = new THREE.PerspectiveCamera(75, visibleSize.width / visibleSize.height, 0.1, 2000);
 
         //Audio
         listener = new THREE.AudioListener();
-        sound = new THREE.PositionalAudio( listener );
-        camera.add( listener );
+        sound = new THREE.PositionalAudio(listener);
+        camera.add(listener);
 
         //HDRI
         //scene.background = cubeLoader.load(urls);
 
         //Initial camera positions.
-	    	camera.position.z = 5;
-	    	camera.position.y = 40;
+        camera.position.z = 5;
+        camera.position.y = 20;
         camera.rotation.x = THREE.Math.degToRad(-70);
-      
+
         ////////////////////
         //Renderer settings
 
-	    	renderer = new THREE.WebGLRenderer( {precision: "mediump" } );
-	    	//renderer.setClearColor(new THREE.Color(0, 0, 0));
+        renderer = new THREE.WebGLRenderer({
+            precision: "mediump"
+        });
+        //renderer.setClearColor(new THREE.Color(0, 0, 0));
         renderer.toneMapping = THREE.ReinhardToneMapping;
         renderer.toneMappingExposure = 1.3;
         renderer.shadowMap.enabled = true;
-	    	renderer.setPixelRatio(visibleSize.width / visibleSize.height);
-	    	renderer.setSize(visibleSize.width, visibleSize.height);
+        renderer.setPixelRatio(visibleSize.width / visibleSize.height);
+        renderer.setSize(visibleSize.width, visibleSize.height);
 
         ////////////////////
         //Lighting
 
         //variables
         var ambientLightIntensity = 0.5;
-      
+
         //Setup
-	    	var ambientLight = new THREE.AmbientLight(new THREE.Color(1, 1, 0.9), ambientLightIntensity);
-	    	var directionalLight = new THREE.DirectionalLight(new THREE.Color(1, 1, 0), 0.3);
+        var ambientLight = new THREE.AmbientLight(new THREE.Color(1, 1, 0.9), ambientLightIntensity);
+        var directionalLight = new THREE.DirectionalLight(new THREE.Color(1, 1, 0), 0.3);
         directionalLight.castshadow = true;
         directionalLight.position.set(0, 0, 1);
         var spotLight = new THREE.SpotLight(0xffa95c, 2);
         spotLight.position.set(0, 15, 0);
         spotLight.castshadow = true;
         var hemiLight = new THREE.HemisphereLight(0xffeeb1, 0x080820, 4);
-        
+
         //Adding
         scene.add(spotLight);
         scene.add(ambientLight);
-	    	scene.add(directionalLight);
+        scene.add(directionalLight);
         scene.add(hemiLight);
-      
+
         ////////////////////
         //DEBUG: Grid
 
         //Adds the grid
-	    	var grid = new THREE.GridHelper(50, 10, 0xffffff, 0xffffff);
-	    	grid.position.y = -1;
-	    	scene.add(grid);
+        var grid = new THREE.GridHelper(50, 10, 0xffffff, 0xffffff);
+        grid.position.y = -1;
+        scene.add(grid);
 
         ////////////////////
         //Materials
-        var geometry = new THREE.SphereGeometry(100, 60, 40);  
+        var geometry = new THREE.SphereGeometry(100, 60, 40);
 
-        var uniforms = {  
-          texture: { type: 't', value: textureLoader.load( 'assets/posy.jpg' ) }
+        var uniforms = {
+            texture: {
+                type: 't',
+                value: textureLoader.load('assets/posy.jpg')
+            }
         };
 
-        var material = new THREE.ShaderMaterial( {  
-          uniforms:       uniforms,
-          vertexShader:   document.getElementById('sky-vertex').textContent,
-          fragmentShader: document.getElementById('sky-fragment').textContent
+        var material = new THREE.ShaderMaterial({
+            uniforms: uniforms,
+            vertexShader: document.getElementById('sky-vertex').textContent,
+            fragmentShader: document.getElementById('sky-fragment').textContent
         });
         material.side = THREE.BackSide;
-        var skyBox = new THREE.Mesh(geometry, material);  
+        var skyBox = new THREE.Mesh(geometry, material);
 
-        skyBox.scale.set(10, 10, 10);  
-        skyBox.eulerOrder = 'XZY';  
-        skyBox.renderDepth = 1000.0;  
-        scene.add(skyBox);  
+        skyBox.scale.set(10, 10, 10);
+        skyBox.eulerOrder = 'XZY';
+        skyBox.renderDepth = 1000.0;
+        scene.add(skyBox);
 
         ////////////////////
-      
+
+
+
         //Delect the ID of the to-be canvas tag
-	    	$("#splash-canvas").append(renderer.domElement);
+        $("#splash-canvas").append(renderer.domElement);
 
-        window.addEventListener( 'resize', onWindowResize, false );
-	    }
+        controls = new THREE.OrbitControls(camera, renderer.domElement);
 
-      /////////////////////////////////////////////////
-      //Key inputs.
 
-      function onKeyDown(event) {
-		    keys[String.fromCharCode(event.keyCode)] = true;
-	    }
-	    function onKeyUp(event) {
-		    keys[String.fromCharCode(event.keyCode)] = false;
-	    }
+        window.addEventListener('resize', onWindowResize, false);
+    }
 
-      /////////////////////////////////////////////////
+    /////////////////////////////////////////////////
+    //Key inputs.
 
-	    $(document).ready(function() 
-      {
-      
-        $( "#play-btn" ).click(function() {
-          $("#play-registry").toggle("fast", "swing", function(){
+    function onKeyDown(event) {
+        keys[String.fromCharCode(event.keyCode)] = true;
+    }
+
+    function onKeyUp(event) {
+        keys[String.fromCharCode(event.keyCode)] = false;
+    }
+
+    /////////////////////////////////////////////////
+
+    $(document).ready(function() {
+
+        $("#play-btn").click(function() {
+
+            $("#play-registry").toggle("fast", "swing", function() {
+                $("#select-stage").toggle();
+            });
+
+        });
+
+        $("#ready-p2-btn").click(function() {
+
+            $("#play-registry").toggle("fast", "swing", function() {
+                $("#select-stage").toggle();
+            });
+
+        });
+
+        $("#okay-btn").click(function() {
+            $("#initial-info").toggle();
             $("#select-stage").toggle();
-          });
+            $("#username").toggle();
+
+            $("#gameplay-instructions").toggle();
+
+            isPlayerReady[0] = true;
         });
-      
-        $( "#okay-btn" ).click(function() {
-          $("#initial-info").toggle();
-          $("#select-stage").toggle();
-          $("#username").toggle();
 
-          isPlayerReady[0] = true;
-        });
-      
-        $( ".course-category" ).click(function() 
-        {
+        $(".course-category").click(function() {
 
-          $( ".course-category" ).removeClass('selected');
-          $(this).toggleClass('selected');
-  
-          if(sound.isPlaying)
-            sound.stop();
-  
-          switch($(this).attr('id')) 
-          {
-            case "cc_murrica":
-              
-              audioLoader.load( 'assets/turkey.mp3', function( buffer ) 
-              {
+            $(".course-category").removeClass('selected');
+            $(this).toggleClass('selected');
 
-          			sound.setBuffer( buffer );
-          			sound.setLoop( true );
-          			sound.setVolume( 1 );
-          			sound.play();
+            if (sound.isPlaying)
+                sound.stop();
 
-              });
-              break;
+            switch ($(this).attr('id')) {
+                case "cc_murrica":
 
-            case "cc_italy":
-            
-              audioLoader.load( 'assets/funi.mp3', function( buffer ) 
-              {
+                    audioLoader.load('assets/turkey.mp3', function(buffer) {
 
-          			sound.setBuffer( buffer );
-          			sound.setLoop( true );
-          			sound.setVolume( 1 );
-          			sound.play();
-                
-              });
-              break;
+                        sound.setBuffer(buffer);
+                        sound.setLoop(true);
+                        sound.setVolume(1);
+                        sound.play();
 
-            case "cc_germany":
-              
-              audioLoader.load( 'assets/yodel.mp3', function( buffer ) 
-              {
+                    });
+                    break;
 
-                sound.setBuffer( buffer );
-                sound.setLoop( true );
-                sound.setVolume( 1 );
-                sound.play();
+                case "cc_italy":
 
-              });
-              break;
+                    audioLoader.load('assets/funi.mp3', function(buffer) {
 
-            default:
-              // code block
-          };
+                        sound.setBuffer(buffer);
+                        sound.setLoop(true);
+                        sound.setVolume(1);
+                        sound.play();
+
+                    });
+                    break;
+
+                case "cc_germany":
+
+                    audioLoader.load('assets/yodel.mp3', function(buffer) {
+
+                        sound.setBuffer(buffer);
+                        sound.setLoop(true);
+                        sound.setVolume(1);
+                        sound.play();
+
+                    });
+                    break;
+
+                default:
+                    // code block
+            };
 
         });
-      
-	    	setupScene();
-      
-	    	rayCaster = new THREE.Raycaster();
-      
-	    	camera.rayos = [
-	    		new THREE.Vector3(1, 0, 0),
-	    		new THREE.Vector3(-1, 0, 0),
-	    		new THREE.Vector3(0, 0, 1),
-	    		new THREE.Vector3(0, 0, -1),
-	    	];
+
+        setupScene();
+
+        rayCaster = new THREE.Raycaster();
+
+        camera.rayos = [
+            new THREE.Vector3(1, 0, 0),
+            new THREE.Vector3(-1, 0, 0),
+            new THREE.Vector3(0, 0, 1),
+            new THREE.Vector3(0, 0, -1),
+        ];
+
 
         /////////////////////////////////////////////////
         //Loading.
-        
+
         //Load your shit here.
 
-        textureLoader.load("assets/cloud.png", function(texture)
-        {
-          let cloudGeo = new THREE.PlaneBufferGeometry(1, 1);
-          let cloudMaterial = new THREE.MeshLambertMaterial({
-            map:texture,
-            transparent: true
-          });
-
-
-          for(let p=0; p<50; p++)
-          {
-            let cloud = new THREE.Mesh(cloudGeo, cloudMaterial);
-            cloud.scale.set(1.5,1.5,1.5);
-            cloud.position.set(
-              Math.random()*2 -0, 
-              6,
-              Math.random()*2 -0
-            );
-            cloud.rotation.x = 1.16;
-            cloud.rotation.y = -0.12;
-            cloud.rotation.x = Math.random()*2*Math.PI;
-            cloud.material.opacity = 0.55;
-            cloudParticles.push(cloud);
-            scene.add(cloud);
-          }
-        });
-        /*    
-	    	loadOBJWithMTL("assets/", "box.obj", "box.mtl", (object) => {
-	    		object.position.z = -30;			
-        
-	    		var box2 = object.clone();
-	    		box2.position.x = 30;
-        
-	    		var box3 = object.clone();
-	    		box3.position.x = -30;
-        
-        
-	    		var box4 = object.clone();
-	    		box4.position.x = 0;
-	    		box4.position.z = 30;
-        
-	    		var box5 = box4.clone();
-	    		box5.position.x = 30;
-        
-	    		var box6 = box4.clone();
-	    		box6.position.x = -30;
-        
-	    		var box7 = object.clone();		
-	    		box7.position.z = 0;
-	    		box7.position.x = 50;
-	    		box7.rotation.y = THREE.Math.degToRad(90);
-        
-	    		var box8 = box7.clone();		
-	    		box8.position.x = -50;
-	    		box8.rotation.y = THREE.Math.degToRad(-90);
-        
-        
-	    		scene.add(object);
-	    		scene.add(box2);
-	    		scene.add(box3);
-	    		scene.add(box4);
-	    		scene.add(box5);
-	    		scene.add(box6);
-	    		scene.add(box7);
-	    		scene.add(box8);
-        
-	    		objetosConColision.push(object);
-	    		objetosConColision.push(box2);
-	    		objetosConColision.push(box3);
-	    		objetosConColision.push(box4);
-	    		objetosConColision.push(box5);
-	    		objetosConColision.push(box6);
-	    		objetosConColision.push(box7);
-	    		objetosConColision.push(box8);
-        
-        
-	    		isWorldReady[0] = true;
-	    	});
-      
-	    	loadOBJWithMTL("assets/", "jetski.obj", "jetski.mtl", (object) => {
-	    		object.position.z = -10;
-	    		object.rotation.x = THREE.Math.degToRad(-90);
-        
-	    		scene.add(object);
-	    		isWorldReady[1] = true;
-	    	});
-        */    
-
         var character;
-        GLTFLoader.load( 'assets/scene.gltf', function ( gltf ) {
-				//	gltf.scene.rotation.y = 180;
-				//gltf.scene.scale.set(7,7,7);
-						//mixer2=new THREE.AnimationMixer(gltf.scene);
-						//mixer2.clipAction(gltf.animations[0]).play();
+        var character2;
+
+        var box;
+
+        
+        GLTFLoader.load('assets/boxes.glb', function(gltf) {
+
+          box = gltf.scene;
+          //box.scale.set(3.5, 3.5, 3.5);
+          //box.rotation.y = THREE.Math.degToRad(180);
+
+          box.name = "box";
+
+          scene.add(box);
+
+          objetosConColision.push(box);
+
+        }, undefined, function(error) {
+        console.error(error);
+        });
+        
+        
+
+        GLTFLoader.load('assets/chef.glb', function(gltf) {
 
             character = gltf.scene;
-            mixer = new THREE.AnimationMixer(character);
-						mixer.clipAction(gltf.animations[0]).play();
-            character.scale.set(0.05,0.05,0.05);
-            character.position.set(0, 10, -1);
-            character.name="character";
 
-            
-						scene.add( character );
-						
+            character.rayos = [
+            new THREE.Vector3(1, 0, 0),
+            new THREE.Vector3(-1, 0, 0),
+            new THREE.Vector3(0, 0, 1),
+            new THREE.Vector3(0, 0, -1)
+        ];
+
+            mixer = new THREE.AnimationMixer(character);
+            mixer.clipAction(gltf.animations[0]).play();
+
+            character.name = "character";
+
+            scene.add(character);
+
+            textureLoader.load("assets/cloud.png", function(texture) {
+                let cloudGeo = new THREE.PlaneBufferGeometry(1, 1);
+                let cloudMaterial = new THREE.MeshLambertMaterial({
+                    map: texture,
+                    transparent: true
+                });
+
+
+                for (let p = 0; p < 50; p++) {
+                    let cloud = new THREE.Mesh(cloudGeo, cloudMaterial);
+                    cloud.scale.set(1, 1, 1);
+                    cloud.position.set(
+                        Math.random() * 2 - 1,
+                        2,
+                        Math.random() * 2 - 3
+                    );
+                    cloud.rotation.x = 1.16;
+                    cloud.rotation.y = -0.12;
+                    cloud.rotation.x = Math.random() * 2 * Math.PI;
+                    cloud.material.opacity = 0.55;
+                    cloudParticles.push(cloud);
+                    scene.add(cloud);
+                    character.add(cloud);
+                }
+            });
+
+
+
 
             isWorldReady[0] = true;
-				}, undefined, function ( error ) {
-						console.error( error );
-				} );
+        }, undefined, function(error) {
+            console.error(error);
+        });
 
-      
-        GLTFLoader.load('assets/kitchen.glb', handle_load);
-      
-      
-      
-        function handle_load(gltf) {
-        
-          //Transformations
-          gltf.scene.scale.set(3.5,3.5,3);
-          gltf.scene.rotation.y=THREE.Math.degToRad(180);
-        
-          //Check it out in console
-          //console.log(gltf);
-        
-          mesh = gltf.scene;
-          //console.log(mesh.children[0]);
-          mesh.children[0].material = new THREE.MeshLambertMaterial();
-        
-          //Add the name
-          mesh.name = "scenery";
-        
-          //Add to the scene.
-          mesh.traverse(n => {
-            if(n.isMesh) {
-              n.castShadow = true;
-              n.receiveShadow = true;
-            }
-          });
-          mesh.add( character );
+        GLTFLoader.load('assets/chef2.glb', function(gltf) {
 
-          scene.add( mesh );
-        
-          //Check as ready.
+            character2 = gltf.scene;
 
-          isWorldReady[1] = true;
-        }
+            mixer2 = new THREE.AnimationMixer(character2);
+            mixer2.clipAction(gltf.animations[0]).play();
+
+            character2.name = "character2";
+
+            scene.add(character2);
+
+            isWorldReady[1] = true;
+        }, undefined, function(error) {
+            console.error(error);
+        });
 
 
-	    	render();
-        
+        GLTFLoader.load('assets/kitchenComplete2.glb', function(gltf) {
+
+            //Transformations
+            //gltf.scene.scale.set(3.5, 3.5, 3);
+            //gltf.scene.rotation.y = THREE.Math.degToRad(180);
+
+            //Check it out in console
+            //console.log(gltf);
+
+            mesh = gltf.scene;
+            //console.log(mesh.children[0]);
+            mesh.children[0].material = new THREE.MeshLambertMaterial();
+
+            //Add the name
+            mesh.name = "scenery";
+
+            //Add to the scene.
+            mesh.traverse(n => {
+                if (n.isMesh) {
+                    n.castShadow = true;
+                    n.receiveShadow = true;
+                }
+            });
+
+
+
+            //character2 = character.clone();
+            // scene.add(character2);
+            mesh.add(character);
+            mesh.add(character2);
+
+            scene.add(mesh);
+            //character2.scale.set(0.01,0.01,0.01);
+            //character2.position.set(0, 2, 0);
+            character2.scale.set(0.7, 0.8, 0.7);
+            character2.position.set(0, 0, 1.8);
+            character.scale.set(0.7*2, 0.8*2, 0.7*2);
+            //character.rotation.y = THREE.Math.degToRad(180);
+            character.position.set(0, 0.3, 2.8);
+
+            //objetosConColision.push(mesh);
+            //Check as ready.
+
+            isWorldReady[2] = true;
+        }, undefined, function(error) {
+            console.error(error);
+        });
+
+
+        render();
+
         /////////////////////////////////////////////////
         //Event listeners
 
         //Key inputs
-	    	document.addEventListener('keydown', onKeyDown);
-	    	document.addEventListener('keyup', onKeyUp);		
-        
+        document.addEventListener('keydown', onKeyDown);
+        document.addEventListener('keyup', onKeyUp);
+
         /////////////////////////////////////////////////
-	    });
-    
-	    function loadOBJWithMTL(path, objFile, mtlFile, onLoadCallback) {
-	    	var mtlLoader = new THREE.MTLLoader();
-	    	mtlLoader.setPath(path);
-	    	mtlLoader.load(mtlFile, (materials) => {
-        
-	    		var objLoader = new THREE.OBJLoader();
-	    		objLoader.setMaterials(materials);
-	    		objLoader.setPath(path);
-	    		objLoader.load(objFile, (object) => {
-	    			onLoadCallback(object);
-	    		});
-        
-	    	});
-	    }
-    
-      /////////////////////////////////////////////////
-	    //Renderer loop
-      
-      function render() {
-	    	requestAnimationFrame(render);
+    });
 
-        deltaTime = clock.getDelta();	
-        
-      
-	    	var yaw = 0;
-	    	var forward = 0;
 
-        cloudParticles.forEach(p => {
-          p.rotation.z -=0.1;
-          p.rotation.x -=0.02;
+    function loadOBJWithMTL(path, objFile, mtlFile, onLoadCallback) {
+        var mtlLoader = new THREE.MTLLoader();
+        mtlLoader.setPath(path);
+        mtlLoader.load(mtlFile, (materials) => {
+
+            var objLoader = new THREE.OBJLoader();
+            objLoader.setMaterials(materials);
+            objLoader.setPath(path);
+            objLoader.load(objFile, (object) => {
+                onLoadCallback(object);
+            });
+
         });
-      
+    }
+
+    /////////////////////////////////////////////////
+    //Renderer loop
+
+    function render() {
+
+        //Loop
+        requestAnimationFrame(render);
+
+        //Start the clock
+        deltaTime = clock.getDelta();
+
+        //Variables
+        var movementIndex = 3;
+        var isMoving = [false, false];
+        var isAction = [false, false];
+        //var iscollisioning = [false, false];
+        var yaw = [0, 0];
+        var forward = [0, 0];
+
+        var character;
+        var character2;
+        var scenery;
+        var box;
+
+        var slow = clock.getElapsedTime() * 4;
+        var toggle = true;
+
+
+
 
         /////////////////////////////////////////////////
-        //Music
 
-
-
-        /////////////////////////////////////////////////
-        //Controls
-        
-        //Add the keyboard presses.
-	    	if (keys["A"]) 
-        {
-
-          //window.Livewire.emit('increment');
-	    		yaw = 1;
-          keys["A"] = false;
-
-	    	} else if (keys["D"]) 
-        {
-	    		$('#highscores-modal').modal('toggle');
-          $('#highscores-modal').modal('show');
-          $('#highscores-modal').modal('hide');
-
-	    		yaw = -1;
-	    	}
-	    	if (keys["W"]) 
-        {
-	    		forward = -5;
-	    	} else if (keys["S"]) 
-        {
-	    		forward = 5;
-        }
-        
-        if (keys["R"]) {
-	    		$('#results-modal').modal('toggle');
-          $('#results-modal').modal('show');
-          $('#results-modal').modal('hide');
-        }
-        
-        if (keys["P"]) {
-	    		$('#pause-modal').modal('toggle');
-          $('#pause-modal').modal('show');
-          $('#pause-modal').modal('hide');
-	    	}
-
-        gamepad=navigator.getGamepads ? navigator.getGamepads() : (navigator.webkitGetGamepads ? navigator.webkitGetGamepads : []);
-				if (gamepad.length>0) 
-        {
-					gamepad=gamepad[0];
-				}
-
-				if (gamepad) 
-        {
-					if (gamepad.connected) 
-          {
-            if (gamepad.axes[0]>.5)                 //LStick right
-            {
-							yaw = -5;
-						}
-						if (gamepad.axes[1]>.5)                 //LStick down
-            {
-							forward = 8;
-						}
-						if (gamepad.axes[0]<-.5)                //LStick left
-            {
-							yaw = 5;
-						}
-						if (gamepad.axes[1]<-.5)                //LStick up
-            {
-							forward = -8;
-						}
-
-            if (gamepad.buttons[0].pressed)         //A
-            {
-            }
-            if (gamepad.buttons[0].pressed)         //B
-            {
-            }
-            if (gamepad.buttons[0].pressed)         //X
-            {
-            }
-            if (gamepad.buttons[0].pressed)         //Y
-            {
-            }
-            if (gamepad.buttons[0].pressed)         //RTrigger
-            {
-            }
-            if (gamepad.buttons[0].pressed)         //LTrigger
-            {
-            }
-          }
-        }
-      
-        /////////////////////////////////////////////////
-      
         //Start if everything is ready.
-	    	if (isWorldReady[0] && isWorldReady[1]) {
-          mixer.update(deltaTime);
+        if (isWorldReady[0] && isWorldReady[1] && isWorldReady[2]) {
 
-          //Get by names
-          var character = scene.getObjectByName("character");
-          var scenery = scene.getObjectByName("scenery");
-        
-        
-	    		for (var i = 0; i < camera.rayos.length; i++) {
-          
-	    			// "Lanzamos" el rayo
-	    			// 1er Param: Desde donde lanzamos el rayo
-	    			// 2do Param: Direccion del rayo
-          
-	    			rayCaster.set(camera.position, camera.rayos[i]);
-          
-	    			// Verificamos si hay colision
-          
-	    			// 1er Param: Objetos con los que evaluar si hay colision
-	    			// 2do Param: Para detectar tambien colision con los hijos
-	    			var colision = rayCaster.intersectObjects(objetosConColision, true);
-          
-	    			if (colision.length > 0 && colision[0].distance < 1) {
-	    				// Si hay colision
-	    				console.log("Ya estas colisionando!");
-	    				forward = -4 * (forward);
-	    			}
-          
-          if(isPlayerReady[0] && isPlayerReady[1])
-          {
-            scenery.rotation.y += THREE.Math.degToRad(0.005 + 0.001*(Math.floor(timer.getElapsedTime())/6));
+            //Get by names
+            character = scene.getObjectByName("character");
+            character2 = scene.getObjectByName("character2");
+            scenery = scene.getObjectByName("scenery");
+            box = scene.getObjectByName("box");
 
 
-            //Timer
-            var minutes = Math.floor(Math.floor(timer.getElapsedTime()) / 60);
-            var seconds = Math.floor(timer.getElapsedTime()) - minutes*60;
-            var secondsString = "";
-            if(seconds <= 10){
-              secondsString =  "0" + seconds.toString();
-            }
-            else{
-              secondsString = seconds.toString();
+
+            /////////////////////////////////////////////////
+            //Controls
+
+            //Add the keyboard presses.
+            if (keys["A"]) {
+                //window.Livewire.emit('increment');
+                yaw[0] = movementIndex;
+
+
+                isMoving[0] = true;
+            } else if (keys["D"]) {
+                yaw[0] = -movementIndex;
+
+                isMoving[0] = true;
             }
 
-            sound.setPlaybackRate(1 + 0.1*(Math.floor(timer.getElapsedTime())/20));
-            $("#counter").text(minutes + ":" + secondsString);
-          }
+            if (keys["W"]) {
+                //character.visible = !character.visible;
+                //forward = -movementIndex;
 
-	    		}
-        
-        
-	    		//if (camera.direction.x !== 0 || camera.direction.z !== 0){
-	    		//camera.rotation.y += yaw * deltaTime;
+                isMoving[0] = true;
+            } else if (keys["S"]) {
+                //forward = movementIndex;
 
-	    		//camera.translateZ(forward * deltaTime);
-          //character.rotation.y += yaw * deltaTime;
-          
-	    		character.translateX(yaw * deltaTime);
-	    		//}
-          
-	    	}
-      
-      
-	    	renderer.render(scene, camera);
-	    }
-    
-      /////////////////////////////////////////////////
-      //Adittional functions
+                isMoving[0] = true;
+            }
 
-      //Resize canvas in real time
-			function onWindowResize() {
-				camera.aspect = window.innerWidth / window.innerHeight;
-				camera.updateProjectionMatrix();
-				renderer.setSize( window.innerWidth, window.innerHeight );
-			}
+            if (keys["E"]) {
 
-      window.addEventListener("gamepadconnected", function(e) {
+                isAction[0] = true;
+            }
+
+            if (keys["R"]) {
+                $('#results-modal').modal('toggle');
+                $('#results-modal').modal('show');
+                $('#results-modal').modal('hide');
+
+            }
+
+            if (keys["P"]) {
+                $('#pause-modal').modal('toggle');
+                $('#pause-modal').modal('show');
+                $('#pause-modal').modal('hide');
+            }
+
+            if (keys["H"]) {
+                $('#highscores-modal').modal('toggle');
+                $('#highscores-modal').modal('show');
+                $('#highscores-modal').modal('hide');
+            }
+
+            gamepad = navigator.getGamepads ? navigator.getGamepads() : (navigator.webkitGetGamepads ? navigator
+                .webkitGetGamepads : []);
+
+            if (gamepad.length > 0) {
+                gamepad = gamepad[0];
+            }
+
+            if (gamepad) {
+                if (gamepad.connected) {
+
+                    if (gamepad.axes[0] > .5) //LStick right
+                    {
+                        yaw[1] = -movementIndex;
+
+                        isMoving[1] = true;
+                    }
+
+                    if (gamepad.axes[1] > .5) //LStick down
+                    {
+                        //forward = movementIndex;
+
+                        isMoving[1] = true;
+                    }
+
+                    if (gamepad.axes[0] < -.5) //LStick left
+                    {
+                        yaw[1] = movementIndex;
+
+                        isMoving[1] = true;
+                    }
+
+                    if (gamepad.axes[1] < -.5) //LStick up
+                    {
+                        //forward = -movementIndex;
+
+                        isMoving[1] = true;
+                    }
+
+                    if (gamepad.buttons[0].pressed) //A
+                    {}
+
+                    if (gamepad.buttons[0].pressed) //B
+                    {}
+
+                    if (gamepad.buttons[0].pressed) //X
+                    {}
+
+                    if (gamepad.buttons[0].pressed) //Y
+                    {}
+
+                    if (gamepad.buttons[0].pressed) //RTrigger
+                    {}
+
+                    if (gamepad.buttons[0].pressed) //LTrigger
+                    {}
+
+                }
+            }
+
+            
+
+
+
+            if (isPlayerReady[0] && isPlayerReady[1]) {
+                    scenery.rotation.y += THREE.Math.degToRad(0.005 + 0.001 * (Math.floor(timer.getElapsedTime()) / 6));
+
+
+                    //Timer
+                    var minutes = Math.floor(Math.floor(timer.getElapsedTime()) / 60);
+                    var seconds = Math.floor(timer.getElapsedTime()) - minutes * 60;
+                    var secondsString = "";
+                    if (seconds <= 10) {
+                        secondsString = "0" + seconds.toString();
+                    } else {
+                        secondsString = seconds.toString();
+                    }
+
+                    sound.setPlaybackRate(1 + 0.1 * (Math.floor(timer.getElapsedTime()) / 20));
+                    $("#counter").text(minutes + ":" + secondsString);
+                }
+
+            //if (camera.direction.x !== 0 || camera.direction.z !== 0){
+            //camera.rotation.y += yaw * deltaTime;
+
+            //camera.translateZ(forward * deltaTime);
+            //character.rotation.y += yaw * deltaTime;
+
+            if (isAction[0]) {
+                //Particles
+                cloudParticles.forEach(p => {
+                    p.visible = true;
+                    p.rotation.z -= 0.1;
+                    p.rotation.x -= 0.02;
+                    if (toggle) {
+                        p.scale.set(Math.sin(slow) / 2 + 0.5, Math.sin(slow) / 2 + 0.5, Math.sin(slow) / 2 +
+                            0.5);
+                        toggle = false;
+                    } else {
+                        p.scale.set(Math.sin(-slow) / 2 + 0.5, Math.sin(-slow) / 2 + 0.5, Math.sin(-slow) / 2 +
+                            0.5);
+                        toggle = true;
+                    }
+
+                });
+            } else {
+
+                cloudParticles.forEach(p => {
+                    p.visible = false;
+
+
+                });
+
+            }
+
+
+            //Animation updates
+            if (isMoving[0])
+                mixer.update(deltaTime);
+
+            if (isMoving[1])
+                mixer2.update(deltaTime);
+            
+
+            character.translateX(yaw[0] * deltaTime);
+
+            box.visible = true;
+            
+            for (var i = 0; i < character.rayos.length; i++) {
+
+              // "Lanzamos" el rayo
+              // 1er Param: Desde donde lanzamos el rayo
+              // 2do Param: Direccion del rayo
+
+              rayCaster.set(character.position, character.rayos[i]);
+
+              // Verificamos si hay colision
+
+              // 1er Param: Objetos con los que evaluar si hay colision
+              // 2do Param: Para detectar tambien colision con los hijos
+              var colision = rayCaster.intersectObjects(objetosConColision, true);
+
+              if (colision.length > 0 && colision[0].distance < 1) {
+                  // Si hay colision
+                  console.log("Ya estas colisionando!");
+              
+                  if(character.position.x <= -12 || character.position.x >= 7)
+                    character.translateX(-yaw[0] * deltaTime);
+              }
+            }
+            box.visible = false;
+
+
+
+
+            character2.translateX(yaw[1] * deltaTime);
+            //}
+
+        }
+
+
+        renderer.render(scene, camera);
+    }
+
+    /////////////////////////////////////////////////
+    //Adittional functions
+
+    //Resize canvas in real time
+    function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    window.addEventListener("gamepadconnected", function(e) {
         console.log("Gamepad connected at index %d: %s. %d buttons, %d axes.",
-        e.gamepad.index, e.gamepad.id,
-        e.gamepad.buttons.length, e.gamepad.axes.length);
+            e.gamepad.index, e.gamepad.id,
+            e.gamepad.buttons.length, e.gamepad.axes.length);
         isPlayerReady[1] = true;
-      });
+    });
 
-      /////////////////////////////////////////////////
+    /////////////////////////////////////////////////
     </script>
 
 
 
 </head>
+
 <body>
- <nav class="navbar navbar-expand-lg navbar-dark ftco_navbar bg-dark ftco-navbar-light" id="ftco-navbar">
-   <div class="container">
-     <a class="navbar-brand" href="index.html"><span>Kitch 'n </span>Rush</a>
-     <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#ftco-nav" aria-controls="ftco-nav" aria-expanded="false" aria-label="Toggle navigation">
-       <span class="oi oi-menu"></span> Menu
-   </button>
+    <nav class="navbar navbar-expand-lg navbar-dark ftco_navbar bg-dark ftco-navbar-light" id="ftco-navbar">
+        <div class="container">
+            <a class="navbar-brand" href="index.html"><span>Kitch 'n </span>Rush</a>
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#ftco-nav"
+                aria-controls="ftco-nav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="oi oi-menu"></span> Menu
+            </button>
 
-   <div class="collapse navbar-collapse" id="ftco-nav">
-       <ul class="navbar-nav ml-auto">
-       <li  class="p_logged nav-item"><p id="counter" class="nav-link"></p></li>
+            <div class="collapse navbar-collapse" id="ftco-nav">
+                <ul class="navbar-nav ml-auto">
+                    <li class="p_logged nav-item">
+                        <p id="counter" class="nav-link"></p>
+                    </li>
 
-      @auth
-        <li id="username" style="display: none;" class="p_logged nav-item"><a href="instructor.html" class="nav-link">{{ Auth::user()->name }}</a></li>
-      @endauth
+                    @auth
+                    <li id="username" style="display: none;" class="p_logged nav-item"><a href="instructor.html"
+                            class="nav-link">{{ Auth::user()->name }}</a></li>
+                    @endauth
 
-    @guest
-        <li id="username" style="display: none;" class="p_guest nav-item"><a href="instructor.html" class="nav-link">Guest</a></li>
-    @endguest
-         
-         <!--li class="nav-item"><a href="blog.html" class="nav-link">Options</a></li-->
-         <li class="nav-item"><a href="#" data-toggle="modal" data-target="#help-modal" class="nav-link">Help</a></li>
-     </ul>
- </div>
-</div>
-</nav>
-<!-- END nav -->
+                    @guest
+                    <li id="username" style="display: none;" class="p_guest nav-item"><a href="instructor.html"
+                            class="nav-link">Guest</a></li>
+                    @endguest
 
-<div class="hero-wrap js-fullheight" >
-
-  <div class=" overlay" id="splash-canvas"></div>
-  <div class="container" id="initial-info">
-    <div class="row no-gutters slider-text js-fullheight align-items-center" data-scrollax-parent="true">
-      <div class="col-md-7 ftco-animate">      
-        <span class="subheading">Welcome to Kitch 'n Rush!</span>
-        <h1 class="mb-4">Online Speedrun cooking simulator.</h1>
-        <p class="caps">Start playing by creating an account or play as a guest. Select one mode ad voila! Fun never ends.</p>
-        <!--p class="mb-0"><a href="#" class="btn btn-primary">Our Course</a> <a href="#" class="btn btn-white">Learn More</a></p-->
-    </div>
-</div>
-</div>
-</div>
-
- <!-- Modal -->
- <div class="modal fade" id="highscores-modal" role="dialog">
-    <div class="modal-dialog">
-    
-      <!-- Modal content-->
-      <div class="modal-content">
-        <div class="modal-header">
-
-          <h4 class="modal-title">highscores</h4>
-          <button type="button" class="close" data-dismiss="modal">&times;</button>
+                    <!--li class="nav-item"><a href="blog.html" class="nav-link">Options</a></li-->
+                    <li class="nav-item"><a href="#" data-toggle="modal" data-target="#help-modal"
+                            class="nav-link">Help</a></li>
+                </ul>
+            </div>
         </div>
-        <div class="modal-body">
-                <div class="row justify-content-center pb-4">
-          <div class="col-md-12 heading-section text-center ftco-animate">
-          	<span class="subheading">Congratulations!</span>
-            <h2 class="mb-4">You Won!</h2>
+    </nav>
+    <!-- END nav -->
 
-            <livewire:highscore />
+    <div class="hero-wrap js-fullheight">
 
+        <div class=" overlay" id="splash-canvas"></div>
+        <div class="container" id="initial-info">
+            <div class="row no-gutters slider-text js-fullheight align-items-center" data-scrollax-parent="true">
+                <div class="col-md-7 ftco-animate">
+                    <span class="subheading">Welcome to Kitch 'n Rush!</span>
+                    <h1 class="mb-4">Online Speedrun cooking simulator.</h1>
+                    <p class="caps">Start playing by creating an account or play as a guest. Select one mode ad voila!
+                        Fun never ends.</p>
+                    <!--p class="mb-0"><a href="#" class="btn btn-primary">Our Course</a> <a href="#" class="btn btn-white">Learn More</a></p-->
+                </div>
+            </div>
         </div>
     </div>
-        <p>With: 0.00 seconds to spare.</p>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-default purple" data-dismiss="modal">Neat!</button>
-        </div>
-      </div>
-      
-    </div>
-  </div>
 
-  <!-- Modal -->
-  <div class="modal fade" id="results-modal" role="dialog">
-    <div class="modal-dialog">
-    
-      <!-- Modal content-->
-      <div class="modal-content">
-        <div class="modal-header">
+    <!-- Modal -->
+    <div class="modal fade" id="highscores-modal" role="dialog">
+        <div class="modal-dialog">
 
-          <h4 class="modal-title">Results</h4>
-          <button type="button" class="close" data-dismiss="modal">&times;</button>
-        </div>
-        <div class="modal-body">
-                <div class="row justify-content-center pb-4">
-          <div class="col-md-12 heading-section text-center ftco-animate">
-          	<span class="subheading">Congratulations!</span>
-            <h2 class="mb-4">You Won!</h2>
-        </div>
-    </div>
-        <p>With: 0.00 seconds to spare.</p>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-default purple" data-dismiss="modal">Neat!</button>
-        </div>
-      </div>
-      
-    </div>
-  </div>
+            <!-- Modal content-->
+            <div class="modal-content">
+                <div class="modal-header">
 
-   <!-- Modal -->
-   <div class="modal fade" id="help-modal" role="dialog">
-    <div class="modal-dialog">
-    
-      <!-- Modal content-->
-      <div class="modal-content">
-        <div class="modal-header">
+                    <h4 class="modal-title">highscores</h4>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="row justify-content-center pb-4">
+                        <div class="col-md-12 heading-section text-center ftco-animate">
+                            <span class="subheading">Congratulations!</span>
+                            <h2 class="mb-4">You Won!</h2>
 
-          <h4 class="modal-title">Controls</h4>
-          <button type="button" class="close" data-dismiss="modal">&times;</button>
-        </div>
-        <div class="modal-body">
-                <div class="row justify-content-center pb-4">
-          <div class="col-md-12 heading-section text-center ftco-animate">
-            <p>WASD: Move around.</p>
-            <p>Mouse: Move hand.</p>
-            <p>Right Click: Grab.</p>
-            <p>Left Click: Let go.</p>
+                            <livewire:highscore />
+
+                        </div>
+                    </div>
+                    <p>With: 0.00 seconds to spare.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default purple" data-dismiss="modal">Neat!</button>
+                </div>
+            </div>
+
         </div>
     </div>
-        
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-default purple" data-dismiss="modal">Got it!</button>
-        </div>
-      </div>
-      
-    </div>
-  </div>
 
-  <!-- Modal -->
-  <div class="modal fade" id="pause-modal" role="dialog">
-    <div class="modal-dialog">
-    
-      <!-- Modal content-->
-      <div class="modal-content">
-        <div class="modal-header">
+    <!-- Modal -->
+    <div class="modal fade" id="results-modal" role="dialog">
+        <div class="modal-dialog">
 
-          <h4 class="modal-title">Pause</h4>
-          <button type="button" class="close" data-dismiss="modal">&times;</button>
-        </div>
-        <div class="modal-body">
-                <div class="row justify-content-center pb-4">
-          <div class="col-md-12 heading-section text-center ftco-animate">
-          	
-            <h3 class="mb-4">On pause...</h3>
-            <span class="subheading">Remember that this is an online game, so time is still running!</span>
+            <!-- Modal content-->
+            <div class="modal-content">
+                <div class="modal-header">
+
+                    <h4 class="modal-title">Results</h4>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="row justify-content-center pb-4">
+                        <div class="col-md-12 heading-section text-center ftco-animate">
+                            <span class="subheading">Congratulations!</span>
+                            <h2 class="mb-4">You Won!</h2>
+                        </div>
+                    </div>
+                    <p>With: 0.00 seconds to spare.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default purple" data-dismiss="modal">Neat!</button>
+                </div>
+            </div>
+
         </div>
     </div>
-        
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-default purple" data-dismiss="modal">Go Back!</button>
-        </div>
-      </div>
-      
-    </div>
-  </div>
 
-<section class="ftco-section ftco-no-pb ftco-no-pt" id="play-registry">
-   <div class="container">
-      <div class="row">
-         <div class="col-md-7"></div>
-         <div class="col-md-5 order-md-last">
-          <div class="login-wrap p-4 p-md-5">
-              <h3 >Start playing</h3>
-              <hr>
-              <form action="#" class="signup-form">
-              <div class="form-group">
-                    <p>As a guest...</p>
+    <!-- Modal -->
+    <div class="modal fade" id="help-modal" role="dialog">
+        <div class="modal-dialog">
+
+            <!-- Modal content-->
+            <div class="modal-content">
+                <div class="modal-header">
+
+                    <h4 class="modal-title">Controls</h4>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="row justify-content-center pb-4">
+                        <div class="col-md-12 heading-section text-center ftco-animate">
+                            <p>WASD: Move around.</p>
+                            <p>Mouse: Move hand.</p>
+                            <p>Right Click: Grab.</p>
+                            <p>Left Click: Let go.</p>
+                        </div>
+                    </div>
 
                 </div>
-                 <div class="">
-                    <label class="label" for="name">Alias</label>
-                    <input type="text" class="form-control" placeholder="xXx_PussySlayer_xXx">
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default purple" data-dismiss="modal">Got it!</button>
                 </div>
-                <div class="form-group d-flex justify-content-end mt-4">
-              <button id="play-btn" type="button"  class="btn purple submit fill">Play!</button>
-             </div>
+            </div>
 
-                <div class="form-group">
-                    <p>Or use an account...</p>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal fade" id="pause-modal" role="dialog">
+        <div class="modal-dialog">
+
+            <!-- Modal content-->
+            <div class="modal-content">
+                <div class="modal-header">
+
+                    <h4 class="modal-title">Pause</h4>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="row justify-content-center pb-4">
+                        <div class="col-md-12 heading-section text-center ftco-animate">
+
+                            <h3 class="mb-4">On pause...</h3>
+                            <span class="subheading">Remember that this is an online game, so time is still
+                                running!</span>
+                        </div>
+                    </div>
 
                 </div>
-                <!--div class="form-group">
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default purple" data-dismiss="modal">Go Back!</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <section class="ftco-section ftco-no-pb ftco-no-pt" id="play-registry">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-7"></div>
+                <div class="col-md-5 order-md-last">
+                    <div class="login-wrap p-4 p-md-5">
+                        <h3>Start playing</h3>
+                        <hr>
+                        <form action="#" class="signup-form">
+                            <div class="">
+                                <p>As a guest...</p>
+
+                            </div>
+                            <div class="">
+                                <label class="label" for="name">Alias</label>
+                                <input type="text" class="form-control" placeholder="xXx_PussySlayer_xXx">
+                            </div>
+                            <div class="form-group d-flex justify-content-end mt-4">
+                                <button id="play-btn" type="button" class="btn purple submit fill">Play!</button>
+                            </div>
+
+                            <div class="form-group">
+                                <p>Or use an account...</p>
+
+                            </div>
+                            <!--div class="form-group">
                     <label class="label" for="email">Email Address</label>
                     <input type="text" class="form-control" placeholder="johndoe@gmail.com">
                 </div>
@@ -894,81 +1000,107 @@
                  <input id="password-field" type="password" class="form-control" placeholder="Confirm Password">
              </div-->
 
-            <div class="form-group row">
-              <div class="col-md-6 col-lg-6">
-              <a href="{{ route('login-facebook')}}" class="btn btn-primary fill submit"><span class="fa fa-facebook"></span>  Sign In</a>
-             
-              </div>
-              <div class="col-md-6 col-lg-6">
-                <button type="button" data-toggle="modal" data-target="#myModal" class="btn btn-danger fill submit"><span class="fa fa-google"></span> Sign In</button>
-              </div>
-            </div>
-         </form>
-         <p class="text-center">Already have an account? <a href="#signin">Sign In</a></p>
-     </div>
- </div>
-</div>
-</div>
-</section>
 
-<section class="ftco-section ftco-no-pb ftco-no-pt" style="display: none;" id="select-stage">
-   <div class="container">
-      <div class="row">
-         <div class="col-md-7"></div>
-         <div class="col-md-5 order-md-last">
-          <div class="login-wrap p-4 p-md-5">
-              <h3 >Select Dish</h3>
-              <hr>
-              <form action="#" class="signup-form">
-              <div class="form-group">
-                    <p>Nationality</p>
 
+                            <a href="{{ route('login-facebook')}}" class="btn btn-primary fill submit"><span
+                                    class="fa fa-facebook"></span> Sign In</a>
+
+                        </form>
+                        <p class="text-center">Already have an account? <a href="#signin">Sign In</a></p>
+                    </div>
                 </div>
+            </div>
+        </div>
+    </section>
 
-                <!--div class="row justify-content-center pb-4">
+    <section class="ftco-section ftco-no-pb ftco-no-pt" style="display: none;" id="gameplay-instructions">
+        <div class="container gameplay">
+            <div class="row">
+                <div class="col-md-8"></div>
+                <div class="col-md-4 order-md-last">
+                    <div class="login-wrap gameplay p-4 p-md-5">
+                        <h3>Shnitzel</h3>
+                        <hr>
+                        <form action="#" class="signup-form">
+                            <div class="">
+                                <p>1- Sandiw ☑☑</p>
+                                <p>1- Sandiw</p>
+                                <p>1- Sandiw</p>
+                                <p>1- Sandiw</p>
+                                <p>1- Sandiw</p>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+    <section class="ftco-section ftco-no-pb ftco-no-pt" style="display: none;" id="select-stage">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-7"></div>
+                <div class="col-md-5 order-md-last">
+                    <div class="login-wrap p-4 p-md-5">
+                        <h3>Select Dish</h3>
+                        <hr>
+                        <form action="#" class="signup-form">
+                            <div class="form-group">
+                                <p>Nationality</p>
+
+                            </div>
+
+                            <!--div class="row justify-content-center pb-4">
           <div class="col-md-12 heading-section text-center ftco-animate">
           	<span class="subheading">Start Learning Today</span>
             <h2 class="mb-4">Browse Online Course Category</h2>
         </div>
     </div-->
 
-    <div class="row justify-content-center">
-      <div class="col-md-4 col-lg-4">
-        <a href="#" id="cc_germany" class="course-category img d-flex align-items-center justify-content-center" style="background-image: url({{ asset('images/schnitzel.jpg') }});">
-           <div class="text w-100 text-center">
-              <h3>Germany</h3>
-              <span>Schnitzel</span>
-          </div>
-        </a>
-      </div>
-      <div class="col-md-4 col-lg-4">
-        <a href="#" id="cc_murrica" class="course-category img d-flex align-items-center justify-content-center" style="background-image: url({{ asset('images/pancakes.jpg') }});">
-           <div class="text w-100 text-center">
-              <h3>'Murrica</h3>
-              <span>Pancakes</span>
-          </div>
-        </a>
-      </div>
-      <div class="col-md-4 col-lg-4">
-        <a href="#" id="cc_italy" class="course-category img d-flex align-items-center justify-content-center" style="background-image: url({{ asset('images/ravioli.jpg') }});">
-           <div class="text w-100 text-center">
-              <h3>Italy</h3>
-              <span>Ravioli</span>
-          </div>
-        </a>
-      </div>
-    </div>
-    <div class="form-group d-flex justify-content-end mt-4">
-              <button id="okay-btn" type="button"  class="btn purple submit fill">Okay!</button>
-             </div>
-         </form>
-     </div>
- </div>
-</div>
-</div>
-</section>
+                            <div class="row justify-content-center">
+                                <div class="col-md-4 col-lg-4">
+                                    <a href="#" id="cc_germany"
+                                        class="course-category img d-flex align-items-center justify-content-center"
+                                        style="background-image: url({{ asset('images/schnitzel.jpg') }});">
+                                        <div class="text w-100 text-center">
+                                            <h3>Germany</h3>
+                                            <span>Schnitzel</span>
+                                        </div>
+                                    </a>
+                                </div>
+                                <div class="col-md-4 col-lg-4">
+                                    <a href="#" id="cc_murrica"
+                                        class="course-category img d-flex align-items-center justify-content-center"
+                                        style="background-image: url({{ asset('images/pancakes.jpg') }});">
+                                        <div class="text w-100 text-center">
+                                            <h3>'Murrica</h3>
+                                            <span>Pancakes</span>
+                                        </div>
+                                    </a>
+                                </div>
+                                <div class="col-md-4 col-lg-4">
+                                    <a href="#" id="cc_italy"
+                                        class="course-category img d-flex align-items-center justify-content-center"
+                                        style="background-image: url({{ asset('images/ravioli.jpg') }});">
+                                        <div class="text w-100 text-center">
+                                            <h3>Italy</h3>
+                                            <span>Ravioli</span>
+                                        </div>
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="form-group d-flex justify-content-end mt-4">
+                                <button id="okay-btn" type="button" class="btn purple submit fill">Okay!</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
 
-<!--section class="ftco-section">
+    <!--section class="ftco-section">
    <div class="container">
       <div class="row justify-content-center pb-4">
           <div class="col-md-12 heading-section text-center ftco-animate">
@@ -1547,11 +1679,11 @@
 
 
 
-<!-- loader -->
-<!--div id="ftco-loader" class="show fullscreen"><svg class="circular" width="48px" height="48px"><circle class="path-bg" cx="24" cy="24" r="22" fill="none" stroke-width="4" stroke="#eeeeee"/><circle class="path" cx="24" cy="24" r="22" fill="none" stroke-width="4" stroke-miterlimit="10" stroke="#F96D00"/></svg></div -->
+    <!-- loader -->
+    <!--div id="ftco-loader" class="show fullscreen"><svg class="circular" width="48px" height="48px"><circle class="path-bg" cx="24" cy="24" r="22" fill="none" stroke-width="4" stroke="#eeeeee"/><circle class="path" cx="24" cy="24" r="22" fill="none" stroke-width="4" stroke-miterlimit="10" stroke="#F96D00"/></svg></div -->
 
 
-<!--script>
+    <!--script>
   window.fbAsyncInit = function() {
     FB.init({
       appId      : '{your-app-id}',
@@ -1589,4 +1721,5 @@
 
 
 </body>
+
 </html>

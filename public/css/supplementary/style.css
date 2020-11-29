@@ -8733,6 +8733,13 @@ h1, h2, h3, h4, h5,
     color: #4986fc;
     font-size: 24px; }
 
+.login-wrap.gameplay {
+  margin-top: -300px;
+  }
+.container.gameplay{
+  margin-right: 0%;
+}
+    
 .login-wrap {
   position: relative;
   background: #fff;
@@ -8741,7 +8748,7 @@ h1, h2, h3, h4, h5,
   -moz-box-shadow: 0px 10px 34px -15px rgba(0, 0, 0, 0.24);
   box-shadow: 0px 10px 34px -15px rgba(0, 0, 0, 0.24);
   z-index: 0;
-  margin-top: -600px; }
+  margin-top: -550px; }
   @media (max-width: 767.98px) {
     .login-wrap {
       margin-top: 3em; } }
