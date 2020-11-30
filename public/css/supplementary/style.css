@@ -8734,11 +8734,13 @@ h1, h2, h3, h4, h5,
     font-size: 24px; }
 
 .login-wrap.gameplay {
-  margin-top: -300px;
+  margin-top: -400px;
   }
 .container.gameplay{
   margin-right: 0%;
 }
+
+
     
 .login-wrap {
   position: relative;
@@ -8890,7 +8892,9 @@ h1, h2, h3, h4, h5,
   .course-category.selected {
 
 border-color: var(--purple);
-border-style: solid;  }
+border-style: solid;  
+border-width: 6px;}
+
   .course-category:after {
     position: absolute;
     top: 0;
@@ -10162,4 +10166,22 @@ textarea.form-control {
     
     input::-ms-input-placeholder { /* Microsoft Edge */
      color: red;
+    }
+
+    p.no-margin {
+      padding-right: 0%;
+    }
+
+    div.gameplay > p{
+      line-height: 1;
+    }
+
+    p.pink {
+      font-weight: bolder;
+      color: var(--pink);
+    }
+
+    p.teal {
+      font-weight: bolder;
+      color: var(--cyan);
     }

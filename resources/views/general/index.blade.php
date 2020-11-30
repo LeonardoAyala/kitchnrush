@@ -27,12 +27,15 @@
     <script src="{{ asset('js/supplementary/jquery.min.js') }}"></script>
     <script type="text/javascript" src="{{ asset('js/app.js') }}"></script>
 
+    
     <script src="https://pagecdn.io/lib/three/110/three.min.js" crossorigin="anonymous"></script>
     <!--script type="text/javascript" src="{{ asset('js/three/three.js') }}"></script-->
     <script type="text/javascript" src="{{ asset('js/three/MTLLoader.js') }}"></script>
     <script type="text/javascript" src="{{ asset('js/three/OBJLoader.js') }}"></script>
     <script type="text/javascript" src="{{ asset('js/three/GLTFLoader.js') }}"></script>
     <script type="text/javascript" src="{{ asset('js/three/OrbitControls.js') }}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.20/lodash.min.js" crossorigin="anonymous"></script>
+
 
     @livewireStyles
     @livewireScripts
@@ -70,7 +73,16 @@
     var clock;
     var timer;
     var deltaTime;
+
+
     var keys = {};
+    var keysLast = {};
+    var keysInit = {};
+
+    var buttons = {};
+    var buttonsLast = [false, false, false, false];
+    var buttonsInit = {};
+
 
     //Custom
     var mesh; //EXPERIMENTAL. Trying to build an universal mesh buffer. 
@@ -111,10 +123,24 @@
 
     //Particles
     var cloudParticles = [];
+    var cloudParticles2 = [];
 
     //Animation
     var mixer;
     var mixer2;
+
+    //Gameplay    
+    var stepCheck = [false, false, false, false, false];
+    var stepCheck2 = [false, false, false, false, false];
+
+    var numPresses = [0, 0];
+    var numPresses2 = [0, 0];
+
+    var numSequence = [];
+    var numSequence2 = [];
+
+    var boolGate = [false, false];
+    var boolGate2 = [false, false];
 
     /////////////////////////////////////////////////
     //Obligatory starter shit.
@@ -149,9 +175,10 @@
         //scene.background = cubeLoader.load(urls);
 
         //Initial camera positions.
-        camera.position.z = 5;
+        camera.rotation.x = THREE.Math.degToRad(-85);
+        camera.position.z = 6;
         camera.position.y = 20;
-        camera.rotation.x = THREE.Math.degToRad(-70);
+        
 
         ////////////////////
         //Renderer settings
@@ -189,21 +216,13 @@
         scene.add(hemiLight);
 
         ////////////////////
-        //DEBUG: Grid
-
-        //Adds the grid
-        var grid = new THREE.GridHelper(50, 10, 0xffffff, 0xffffff);
-        grid.position.y = -1;
-        scene.add(grid);
-
-        ////////////////////
         //Materials
         var geometry = new THREE.SphereGeometry(100, 60, 40);
 
         var uniforms = {
             texture: {
                 type: 't',
-                value: textureLoader.load('assets/posy.jpg')
+                value: textureLoader.load('assets/grass2.png')
             }
         };
 
@@ -227,7 +246,7 @@
         //Delect the ID of the to-be canvas tag
         $("#splash-canvas").append(renderer.domElement);
 
-        controls = new THREE.OrbitControls(camera, renderer.domElement);
+        //controls = new THREE.OrbitControls(camera, renderer.domElement);
 
 
         window.addEventListener('resize', onWindowResize, false);
@@ -237,41 +256,36 @@
     //Key inputs.
 
     function onKeyDown(event) {
+        var now = new Date();
+
         keys[String.fromCharCode(event.keyCode)] = true;
+        keysLast[String.fromCharCode(event.keyCode)] = false;
+
+        if(!keysInit[String.fromCharCode(event.keyCode)])
+        {
+            keysInit[String.fromCharCode(event.keyCode)] = now;
+        }
+        
+        if( (keysInit[String.fromCharCode(event.keyCode)] > now) )
+        {
+            keysInit[String.fromCharCode(event.keyCode)] = now;
+        }
+        
     }
 
     function onKeyUp(event) {
         keys[String.fromCharCode(event.keyCode)] = false;
+        keysLast[String.fromCharCode(event.keyCode)] = true;
     }
 
     /////////////////////////////////////////////////
 
     $(document).ready(function() {
 
-        $("#play-btn").click(function() {
-
-            $("#play-registry").toggle("fast", "swing", function() {
-                $("#select-stage").toggle();
+        $("#alias-btn").click(function() {
+            $("#alias-registry").toggle("fast", "swing", function() {
+                $("#stage-registry").toggle();
             });
-
-        });
-
-        $("#ready-p2-btn").click(function() {
-
-            $("#play-registry").toggle("fast", "swing", function() {
-                $("#select-stage").toggle();
-            });
-
-        });
-
-        $("#okay-btn").click(function() {
-            $("#initial-info").toggle();
-            $("#select-stage").toggle();
-            $("#username").toggle();
-
-            $("#gameplay-instructions").toggle();
-
-            isPlayerReady[0] = true;
         });
 
         $(".course-category").click(function() {
@@ -282,8 +296,10 @@
             if (sound.isPlaying)
                 sound.stop();
 
+            console.log($(this).attr('id'));
             switch ($(this).attr('id')) {
                 case "cc_murrica":
+                    $("#course-selected").text("'Murrica");
 
                     audioLoader.load('assets/turkey.mp3', function(buffer) {
 
@@ -296,6 +312,7 @@
                     break;
 
                 case "cc_italy":
+                    $("#course-selected").text("Italy");
 
                     audioLoader.load('assets/funi.mp3', function(buffer) {
 
@@ -308,6 +325,12 @@
                     break;
 
                 case "cc_germany":
+                    $("#course-selected").text("Germany");
+                    $("#step-1").text("1- Wash hands: Press A for exactly 3 seconds while on the sink.");
+                    $("#step-2").text("2- Stir Mix: Press A exactly 30 times while on the cutboard.");
+                    $("#step-3").text("3- Oil dipping: Press A B ⬆ ⬆ A ⬇ B in sequence while on the stove.");
+                    $("#step-4").text("4- Fry: Press A and B for 5-6 seconds while on the stove.");
+                    $("#step-5").text("5- Serve: Press A B in sequence 3 times while on the utensils.");
 
                     audioLoader.load('assets/yodel.mp3', function(buffer) {
 
@@ -320,9 +343,45 @@
                     break;
 
                 default:
+                {
+                    $("#course-selected").text("Germany");
+                    $("#step-1").text("1- Wash hands: Press A for exactly 3 seconds while on the sink.");
+                    $("#step-2").text("1- Wash hands: Press A for exactly 3 seconds while on the sink.");
+                    $("#step-3").text("1- Wash hands: Press A for exactly 3 seconds while on the sink.");
+                    $("#step-4").text("1- Wash hands: Press A for exactly 3 seconds while on the sink.");
+
+                    
+
+                    audioLoader.load('assets/yodel.mp3', function(buffer) {
+
+                        sound.setBuffer(buffer);
+                        sound.setLoop(true);
+                        sound.setVolume(1);
+                        sound.play();
+
+                    });
+                    break;
                     // code block
+                }
+
             };
 
+        });
+
+        $("#stage-btn").click(function() {
+            $("#initial-info").toggle();
+            $("#stage-registry").toggle();
+
+
+            $("#alias").toggle();
+            if( $("#alias").hasClass("p_guest") )
+            {
+                $("#alias > a").text( $("#alias-text").val() );
+            }
+
+            $("#gameplay-instructions").toggle();
+
+            isPlayerReady[0] = true;
         });
 
         setupScene();
@@ -351,8 +410,6 @@
         GLTFLoader.load('assets/boxes.glb', function(gltf) {
 
           box = gltf.scene;
-          //box.scale.set(3.5, 3.5, 3.5);
-          //box.rotation.y = THREE.Math.degToRad(180);
 
           box.name = "box";
 
@@ -397,7 +454,7 @@
                     cloud.scale.set(1, 1, 1);
                     cloud.position.set(
                         Math.random() * 2 - 1,
-                        2,
+                        2.5,
                         Math.random() * 2 - 3
                     );
                     cloud.rotation.x = 1.16;
@@ -409,9 +466,6 @@
                     character.add(cloud);
                 }
             });
-
-
-
 
             isWorldReady[0] = true;
         }, undefined, function(error) {
@@ -428,6 +482,32 @@
             character2.name = "character2";
 
             scene.add(character2);
+
+            textureLoader.load("assets/cloud.png", function(texture) {
+                let cloudGeo = new THREE.PlaneBufferGeometry(1, 1);
+                let cloudMaterial = new THREE.MeshLambertMaterial({
+                    map: texture,
+                    transparent: true
+                });
+
+
+                for (let p = 0; p < 50; p++) {
+                    let cloud = new THREE.Mesh(cloudGeo, cloudMaterial);
+                    cloud.scale.set(1, 1, 1);
+                    cloud.position.set(
+                        Math.random() * 2 - 1,
+                        2.5,
+                        Math.random() * 2 - 3
+                    );
+                    cloud.rotation.x = 1.16;
+                    cloud.rotation.y = -0.12;
+                    cloud.rotation.x = Math.random() * 2 * Math.PI;
+                    cloud.material.opacity = 0.55;
+                    cloudParticles2.push(cloud);
+                    scene.add(cloud);
+                    character2.add(cloud);
+                }
+            });
 
             isWorldReady[1] = true;
         }, undefined, function(error) {
@@ -467,13 +547,11 @@
             mesh.add(character2);
 
             scene.add(mesh);
-            //character2.scale.set(0.01,0.01,0.01);
-            //character2.position.set(0, 2, 0);
-            character2.scale.set(0.7, 0.8, 0.7);
-            character2.position.set(0, 0, 1.8);
-            character.scale.set(0.7*2, 0.8*2, 0.7*2);
-            //character.rotation.y = THREE.Math.degToRad(180);
-            character.position.set(0, 0.3, 2.8);
+            character2.rotation.y = THREE.Math.degToRad(180);
+            character2.scale.set(0.7*3, 0.8*3, 0.7*3);
+            character2.position.set(0, -1.3, -2.5);
+            character.scale.set(0.7*3, 0.8*3, 0.7*3);
+            character.position.set(0, -1.5, 11.8);
 
             //objetosConColision.push(mesh);
             //Check as ready.
@@ -496,22 +574,6 @@
         /////////////////////////////////////////////////
     });
 
-
-    function loadOBJWithMTL(path, objFile, mtlFile, onLoadCallback) {
-        var mtlLoader = new THREE.MTLLoader();
-        mtlLoader.setPath(path);
-        mtlLoader.load(mtlFile, (materials) => {
-
-            var objLoader = new THREE.OBJLoader();
-            objLoader.setMaterials(materials);
-            objLoader.setPath(path);
-            objLoader.load(objFile, (object) => {
-                onLoadCallback(object);
-            });
-
-        });
-    }
-
     /////////////////////////////////////////////////
     //Renderer loop
 
@@ -524,12 +586,24 @@
         deltaTime = clock.getDelta();
 
         //Variables
-        var movementIndex = 3;
+        var movementIndex = 4;
         var isMoving = [false, false];
         var isAction = [false, false];
+        var isStove = [false, false];   //3 - 7
+        var isSink = [false, false];   //-2.5 - 1.2
+        var isUtensils = [false, false];   //--5.2 - -2.5
+        var isCutboard = [false, false];    //-10.5 - -5.2
         //var iscollisioning = [false, false];
         var yaw = [0, 0];
         var forward = [0, 0];
+
+        var keysEnd = {};
+        var keysTime = {};
+        var buttonsEnd = {};
+        var buttonsTime = {};
+
+        var keysPressedList = [];
+        var buttonsPressedList = [];
 
         var character;
         var character2;
@@ -538,9 +612,6 @@
 
         var slow = clock.getElapsedTime() * 4;
         var toggle = true;
-
-
-
 
         /////////////////////////////////////////////////
 
@@ -552,126 +623,247 @@
             character2 = scene.getObjectByName("character2");
             scenery = scene.getObjectByName("scenery");
             box = scene.getObjectByName("box");
-
-
-
-            /////////////////////////////////////////////////
-            //Controls
-
-            //Add the keyboard presses.
-            if (keys["A"]) {
-                //window.Livewire.emit('increment');
-                yaw[0] = movementIndex;
-
-
-                isMoving[0] = true;
-            } else if (keys["D"]) {
-                yaw[0] = -movementIndex;
-
-                isMoving[0] = true;
-            }
-
-            if (keys["W"]) {
-                //character.visible = !character.visible;
-                //forward = -movementIndex;
-
-                isMoving[0] = true;
-            } else if (keys["S"]) {
-                //forward = movementIndex;
-
-                isMoving[0] = true;
-            }
-
-            if (keys["E"]) {
-
-                isAction[0] = true;
-            }
-
-            if (keys["R"]) {
-                $('#results-modal').modal('toggle');
-                $('#results-modal').modal('show');
-                $('#results-modal').modal('hide');
-
-            }
-
-            if (keys["P"]) {
-                $('#pause-modal').modal('toggle');
-                $('#pause-modal').modal('show');
-                $('#pause-modal').modal('hide');
-            }
-
-            if (keys["H"]) {
-                $('#highscores-modal').modal('toggle');
-                $('#highscores-modal').modal('show');
-                $('#highscores-modal').modal('hide');
-            }
-
-            gamepad = navigator.getGamepads ? navigator.getGamepads() : (navigator.webkitGetGamepads ? navigator
-                .webkitGetGamepads : []);
-
-            if (gamepad.length > 0) {
-                gamepad = gamepad[0];
-            }
-
-            if (gamepad) {
-                if (gamepad.connected) {
-
-                    if (gamepad.axes[0] > .5) //LStick right
-                    {
-                        yaw[1] = -movementIndex;
-
-                        isMoving[1] = true;
-                    }
-
-                    if (gamepad.axes[1] > .5) //LStick down
-                    {
-                        //forward = movementIndex;
-
-                        isMoving[1] = true;
-                    }
-
-                    if (gamepad.axes[0] < -.5) //LStick left
-                    {
-                        yaw[1] = movementIndex;
-
-                        isMoving[1] = true;
-                    }
-
-                    if (gamepad.axes[1] < -.5) //LStick up
-                    {
-                        //forward = -movementIndex;
-
-                        isMoving[1] = true;
-                    }
-
-                    if (gamepad.buttons[0].pressed) //A
-                    {}
-
-                    if (gamepad.buttons[0].pressed) //B
-                    {}
-
-                    if (gamepad.buttons[0].pressed) //X
-                    {}
-
-                    if (gamepad.buttons[0].pressed) //Y
-                    {}
-
-                    if (gamepad.buttons[0].pressed) //RTrigger
-                    {}
-
-                    if (gamepad.buttons[0].pressed) //LTrigger
-                    {}
-
-                }
-            }
-
-            
-
+            box.visible = false;
 
 
             if (isPlayerReady[0] && isPlayerReady[1]) {
-                    scenery.rotation.y += THREE.Math.degToRad(0.005 + 0.001 * (Math.floor(timer.getElapsedTime()) / 6));
 
+                    /////////////////////////////////////////////////
+                    //Controls
+
+                    //Add the keyboard presses.
+                    if (keys["A"]) {
+                        //window.Livewire.emit('increment');
+                        yaw[0] = movementIndex;
+                        isMoving[0] = true;
+                    } else if (keys["D"]) {
+                        yaw[0] = -movementIndex;
+                    
+                        isMoving[0] = true;
+                    }
+                
+                    if (keys["S"]) 
+                    {
+                        isAction[0] = true;
+                    }
+                    else
+                    {
+                        if(keysLast["S"])
+                        {
+                            keysEnd["S"] = new Date();
+                        
+                            keysTime["S"] = Math.round((keysEnd["S"] - keysInit["S"])/1000);
+                            console.log("keyup: E " + keysTime["S"] );
+                            keysLast["S"] = false;
+                            keysInit["S"] = 0;
+
+                            keysPressedList.push("S");
+                        }
+
+                    }
+
+                    if (keys["W"]) 
+                    {
+                        isAction[0] = true;
+                    }
+                    else
+                    {
+                        if(keysLast["W"])
+                        {
+                            keysEnd["W"] = new Date();
+                        
+                            keysTime["W"] = Math.round((keysEnd["W"] - keysInit["W"])/1000);
+                            console.log("keyup: E " + keysTime["W"] );
+                            keysLast["W"] = false;
+                            keysInit["W"] = 0;
+
+                            keysPressedList.push("W");
+                        }
+
+                    }
+                
+                    if (keys["E"]) 
+                    {
+                        isAction[0] = true;
+                    }
+                    else
+                    {
+                        if(keysLast["E"])
+                        {
+                            keysEnd["E"] = new Date();
+                        
+                            keysTime["E"] = Math.round((keysEnd["E"] - keysInit["E"])/1000);
+                            console.log("keyup: E " + keysTime["E"] );
+                            keysLast["E"] = false;
+                            keysInit["E"] = 0;
+
+                            keysPressedList.push("E");
+                        }
+
+                    }
+
+                    if (keys["R"]) 
+                    {
+                        isAction[0] = true;
+                    }
+                    else
+                    {
+                        if(keysLast["R"])
+                        {
+                            keysEnd["R"] = new Date();
+                        
+                            keysTime["R"] = Math.round((keysEnd["R"] - keysInit["R"])/1000);
+                            console.log("keyup: R " + keysTime["R"] );
+                            keysLast["R"] = false;
+                            keysInit["R"] = 0;
+
+                            keysPressedList.push("R");
+                        }
+
+                    }
+                
+                    if (keys["P"]) {
+                        $('#pause-modal').modal('toggle');
+                        $('#pause-modal').modal('show');
+                        $('#pause-modal').modal('hide');
+                    }
+                
+                    if (keys["H"]) {
+                        $('#highscores-modal').modal('toggle');
+                        $('#highscores-modal').modal('show');
+                        $('#highscores-modal').modal('hide');
+                    }
+                
+                    gamepad = navigator.getGamepads ? navigator.getGamepads() : (navigator.webkitGetGamepads ? navigator
+                        .webkitGetGamepads : []);
+                
+                    if (gamepad.length > 0) {
+                        gamepad = gamepad[0];
+                    }
+                
+                    if (gamepad) {
+                        if (gamepad.connected) {
+                        
+                            if (gamepad.axes[0] > .5) //LStick right
+                            {
+                                yaw[1] = -movementIndex;
+                            
+                                isMoving[1] = true;
+                            }
+                        
+
+                            if (gamepad.axes[1] > .5) //down
+                            {
+                                if(!buttonsLast[3])
+                                {
+                                    buttonsInit[3] = new Date();
+                                    console.log("buttonsInit " +  buttonsInit[3] );
+                                }
+                                isAction[1] = true;
+                            }
+                            else
+                            {
+                                if(buttonsLast[3])
+                                {
+                                    buttonsEnd[3] = new Date();
+                        
+                                    buttonsTime[3] = Math.round((buttonsEnd[3] - buttonsInit[3])/1000);
+                                    console.log("Buttonup: A " + buttonsTime[3] );
+
+                                    buttonsPressedList.push(3);
+                                }
+                            }
+                        
+                            if (gamepad.axes[0] < -.5) //LStick left
+                            {
+                                yaw[1] = movementIndex;
+                            
+                                isMoving[1] = true;
+                            }
+                        
+                            if (gamepad.axes[1] < -.5) //Up
+                            {
+                                if(!buttonsLast[2])
+                                {
+                                    buttonsInit[2] = new Date();
+                                    console.log("buttonsInit " +  buttonsInit[2] );
+                                }
+                                isAction[1] = true;
+                            }
+                            else
+                            {
+                                if(buttonsLast[2])
+                                {
+                                    buttonsEnd[2] = new Date();
+                        
+                                    buttonsTime[2] = Math.round((buttonsEnd[2] - buttonsInit[2])/1000);
+                                    console.log("Buttonup: A " + buttonsTime[2] );
+
+                                    buttonsPressedList.push(2);
+                                }
+                            }
+
+                            if (gamepad.buttons[0].pressed) //A
+                            {
+                                if(!buttonsLast[0])
+                                {
+                                    buttonsInit[0] = new Date();
+                                    console.log("buttonsInit " +  buttonsInit[0] );
+                                }
+                                isAction[1] = true;
+                            }
+                            else
+                            {
+                                if(buttonsLast[0])
+                                {
+                                    buttonsEnd[0] = new Date();
+                        
+                                    buttonsTime[0] = Math.round((buttonsEnd[0] - buttonsInit[0])/1000);
+                                    console.log("Buttonup: A " + buttonsTime[0] );
+
+                                    buttonsPressedList.push(0);
+                                }
+                            }
+                        
+
+                            if (gamepad.buttons[1].pressed) //B
+                            {
+                                if(!buttonsLast[1])
+                                {
+                                    buttonsInit[1] = new Date();
+                                    console.log("buttonsInit " +  buttonsInit[1] );
+                                }
+                                isAction[1] = true;
+                            }
+                            else
+                            {
+                                if(buttonsLast[1])
+                                {
+                                    buttonsEnd[1] = new Date();
+                        
+                                    buttonsTime[1] = Math.round((buttonsEnd[1] - buttonsInit[1])/1000);
+                                    console.log("Buttonup: B " + buttonsTime[1] );
+
+                                    buttonsPressedList.push(1);
+                                }
+                            }
+                        
+                            if (gamepad.buttons[2].pressed) //X
+                            {}
+                        
+                            if (gamepad.buttons[3].pressed) //Y
+                            {}
+                        
+                            if (gamepad.buttons[0].pressed) //RTrigger
+                            {}
+                        
+                            if (gamepad.buttons[0].pressed) //LTrigger
+                            {}
+                        
+                        }
+                    }
+
+                    camera.rotation.z -= THREE.Math.degToRad(0.05 + 0.002 * (Math.floor(timer.getElapsedTime()) / 3));
 
                     //Timer
                     var minutes = Math.floor(Math.floor(timer.getElapsedTime()) / 60);
@@ -684,42 +876,31 @@
                     }
 
                     sound.setPlaybackRate(1 + 0.1 * (Math.floor(timer.getElapsedTime()) / 20));
-                    $("#counter").text(minutes + ":" + secondsString);
-                }
+                    $("#counter").text("Timer: " + minutes + ":" + secondsString);
 
-            //if (camera.direction.x !== 0 || camera.direction.z !== 0){
-            //camera.rotation.y += yaw * deltaTime;
-
-            //camera.translateZ(forward * deltaTime);
-            //character.rotation.y += yaw * deltaTime;
-
-            if (isAction[0]) {
-                //Particles
-                cloudParticles.forEach(p => {
-                    p.visible = true;
-                    p.rotation.z -= 0.1;
-                    p.rotation.x -= 0.02;
-                    if (toggle) {
-                        p.scale.set(Math.sin(slow) / 2 + 0.5, Math.sin(slow) / 2 + 0.5, Math.sin(slow) / 2 +
-                            0.5);
-                        toggle = false;
-                    } else {
-                        p.scale.set(Math.sin(-slow) / 2 + 0.5, Math.sin(-slow) / 2 + 0.5, Math.sin(-slow) / 2 +
-                            0.5);
-                        toggle = true;
+                    //buttonsLast = _.cloneDeep(gamepad.buttons);
+                    //buttonsLast = jQuery.extend(true, [], gamepad.buttons);
+                    buttonsLast[0] = gamepad.buttons[0].pressed;
+                    buttonsLast[1] = gamepad.buttons[1].pressed;
+                    
+                    if(gamepad.axes[1] < -.5)
+                    {
+                        buttonsLast[2] = true;
+                    }
+                    else
+                    {
+                        buttonsLast[2] = false;
                     }
 
-                });
-            } else {
-
-                cloudParticles.forEach(p => {
-                    p.visible = false;
-
-
-                });
-
-            }
-
+                    if(gamepad.axes[1] > .5)
+                    {
+                        buttonsLast[3] = true;
+                    }
+                    else
+                    {
+                        buttonsLast[3] = false;
+                    }
+                    
 
             //Animation updates
             if (isMoving[0])
@@ -730,6 +911,7 @@
             
 
             character.translateX(yaw[0] * deltaTime);
+            character2.translateX(yaw[1] * deltaTime);
 
             box.visible = true;
             
@@ -755,14 +937,502 @@
                     character.translateX(-yaw[0] * deltaTime);
               }
             }
+
+            for (var i = 0; i < character.rayos.length; i++) {
+
+              // "Lanzamos" el rayo
+              // 1er Param: Desde donde lanzamos el rayo
+              // 2do Param: Direccion del rayo
+
+              rayCaster.set(character2.position, character.rayos[i]);
+
+              // Verificamos si hay colision
+
+              // 1er Param: Objetos con los que evaluar si hay colision
+              // 2do Param: Para detectar tambien colision con los hijos
+              var colision = rayCaster.intersectObjects(objetosConColision, true);
+
+              if (colision.length > 0 && colision[0].distance < 1) {
+                  // Si hay colision
+                  console.log("Ya estas colisionando!");
+              
+                  if(character2.position.x <= -12 || character2.position.x >= 7)
+                    character2.translateX(-yaw[1] * deltaTime);
+              }
+            }
+
             box.visible = false;
 
 
+            if(character.position.x > 3 && character.position.x < 7)
+                {
+                    isStove[0] = true;
+                    //console.log("P1 Stove");
+                }
+
+                if(character.position.x > -2.5 && character.position.x < 1.2)
+                {
+                    isSink[0] = true;
+                    //console.log("P1 Sink");
+                }
+
+                if(character.position.x > -5.6 && character.position.x <= -2.5)
+                {
+                    isUtensils[0] = true;
+                    //console.log("P1 utensils");
+                }
+
+                if(character.position.x > -10.5 && character.position.x <= -5.6)
+                {
+                    isCutboard[0] = true;
+                    //console.log("P1 Cutboard");
+                }
+
+            
+                if(character2.position.x < -8 && character2.position.x > -12)
+                {
+                    isStove[1] = true;
+                    //console.log("P2 Stove");
+                }
+
+                if(character2.position.x < -2.5 && character2.position.x > -6.2)
+                {
+                    isSink[1] = true;
+                    //console.log("P2 Sink");
+                }
+
+                if(character2.position.x < 0.6 && character2.position.x >= -2.5)
+                {
+                    isUtensils[1] = true;
+                    //console.log("P2 utensils");
+                }
+
+                if(character2.position.x < 4.5 && character2.position.x >= 0.6)
+                {
+                    isCutboard[1] = true;
+                    //console.log("P2 Cutboard");
+                }
 
 
-            character2.translateX(yaw[1] * deltaTime);
+            if($("#course-selected").text() == "Germany")
+                {
+                    //1- Wash hands: Press A for exactly 3 seconds while on the sink.");
+                    if(!stepCheck[0] )
+                    {
+                        if( jQuery.inArray( "E", keysPressedList) !== -1 && isSink[0])
+                        {
+                            if(keysTime["E"] == 3 )
+                            {
+                                $("#step-1-P1").text("☑");
+                                stepCheck[0] = true;
+                            }
+                        }
+                        
+                    }
+
+                    //2- Stir Mix: Press A exactly 30 times while on the cutboard.");
+                    
+                    if(stepCheck[0] && !stepCheck[1])
+                    {
+                        if( jQuery.inArray( "E", keysPressedList) !== -1 && isCutboard[0])
+                        {
+                            numPresses[0]++;
+                            console.log(numPresses[0]);
+                            if(numPresses[0] == 30 )
+                            {
+                                $("#step-2-P1").text("☑");
+                                numPresses[0] = 0;
+
+                                stepCheck[1] = true;
+                            }
+                        }
+                    }
+
+                    if(stepCheck[0] && stepCheck[1] && !stepCheck[2])
+                    {
+                        if(keysPressedList[0])
+                        {
+                            if(isStove[0])
+                            {
+                                numSequence.push(keysPressedList[0]);
+
+                                if( numSequence[0] && numSequence[0] !== "E")
+                                {
+                                    numSequence = [];
+                                }
+
+                                if( numSequence[1] && numSequence[1] !== "R")
+                                {
+                                    numSequence = [];
+                                }
+
+                                if( numSequence[2] && numSequence[2] !== "W")
+                                {
+                                    numSequence = [];
+                                }
+
+                                if( numSequence[3] && numSequence[3] !== "W")
+                                {
+                                    numSequence = [];
+                                }
+
+                                if( numSequence[4] && numSequence[4] !== "E")
+                                {
+                                    numSequence = [];
+                                }
+
+                                if( numSequence[5] && numSequence[5] !== "S")
+                                {
+                                    numSequence = [];
+                                }
+
+                                if(numSequence[6])
+                                {
+                                    if(numSequence[6] !== "R")
+                                    {
+                                        numSequence = [];
+                                    }
+                                    else
+                                    {
+                                        $("#step-3-P1").text("☑");
+                                        numSequence = [];
+
+                                        stepCheck[2] = true;
+                                    }
+                                }
+
+                                console.log(numSequence);
+                            }
+                        }
+                    }
+                    
+                    //1- Wash hands: Press A for exactly 3 seconds while on the sink.");
+                    if(stepCheck[0] && stepCheck[1] && stepCheck[2] && !stepCheck[3] )
+                    {
+                        if(isStove[0])
+                        {
+                            
+                            if( jQuery.inArray( "E", keysPressedList) !== -1 && keysTime["E"] >= 5 )
+                            {
+                                boolGate[0] = true;
+                                console.log("E boolgate");
+                            }
+
+                            if(jQuery.inArray( "R", keysPressedList) !== -1 && keysTime["R"] >= 5 )
+                            {
+                                boolGate[1] = true;
+                                console.log("R boolgate");
+                            }
+
+                            if(boolGate[0] && boolGate[1])
+                            {
+                                $("#step-4-P1").text("☑");
+                                stepCheck[3] = true;
+                                boolGate = [false, false];
+                            }
+
+                        }
+                        
+                    }
+
+                    if(stepCheck[0] && stepCheck[1] && stepCheck[2] && stepCheck[3] && !stepCheck[4])
+                    {
+                        if(keysPressedList[0])
+                        {
+                            if(isUtensils[0])
+                            {
+                                numSequence.push(keysPressedList[0]);
+
+                                if( numSequence[0] && numSequence[0] !== "E")
+                                {
+                                    numSequence = [];
+                                }
+
+                                if( numSequence[1] && numSequence[1] !== "R")
+                                {
+                                    numSequence = [];
+                                }
+
+                                if( numSequence[2] && numSequence[2] !== "E")
+                                {
+                                    numSequence = [];
+                                }
+
+                                if( numSequence[3] && numSequence[3] !== "R")
+                                {
+                                    numSequence = [];
+                                }
+
+                                if( numSequence[4] && numSequence[4] !== "E")
+                                {
+                                    numSequence = [];
+                                }
+
+                                if(numSequence[5])
+                                {
+                                    if(numSequence[5] !== "R")
+                                    {
+                                        numSequence = [];
+                                    }
+                                    else
+                                    {
+                                        $("#step-5-P1").text("☑");
+                                        numSequence = [];
+
+                                        stepCheck[5] = true;
+                                    }
+                                }
+
+                                console.log(numSequence);
+                            }
+                        }
+                    }
+
+                    ///////////////////////////////////////////////////////////////////////////////
+
+                    //1- Wash hands: Press A for exactly 3 seconds while on the sink.");
+                    if(!stepCheck2[0] )
+                    {
+                        if( jQuery.inArray( 0, buttonsPressedList) !== -1 && isSink[1])
+                        {
+                            if(buttonsTime[0] == 3 )
+                            {
+                                $("#step-1-P2").text("☑");
+                                stepCheck2[0] = true;
+                            }
+                        }
+                        
+                    }
+
+                    //2- Stir Mix: Press A exactly 30 times while on the cutboard.");
+                    
+                    if(stepCheck2[0] && !stepCheck2[1])
+                    {
+                        if( jQuery.inArray( 0, buttonsPressedList) !== -1 && isCutboard[1])
+                        {
+                            numPresses2[0]++;
+                            console.log(numPresses2[0]);
+                            if(numPresses2[0] == 30 )
+                            {
+                                $("#step-2-P2").text("☑");
+                                numPresses2[0] = 0;
+
+                                stepCheck2[1] = true;
+                            }
+                        }
+                    }
+
+                    if(stepCheck2[0] && stepCheck2[1] && !stepCheck2[2])
+                    {
+                        if(!(buttonsPressedList[0] === undefined))
+                        {
+                            if(isStove[1])
+                            {
+                                numSequence2.push(buttonsPressedList[0]);
+                                if( !(numSequence2[0] === undefined) && numSequence2[0] !== 0 )
+                                {
+                                    numSequence2 = [];
+                                }
+
+                                if(  !(numSequence2[1] === undefined) && numSequence2[1] !== 1 )
+                                {
+                                    numSequence2 = [];
+                                }
+
+                                if( !(numSequence2[2] === undefined) && numSequence2[2] !== 2 )
+                                {
+                                    numSequence2 = [];
+                                }
+
+                                if( !(numSequence2[3] === undefined) && numSequence2[3] !== 2 )
+                                {
+                                    numSequence2 = [];
+                                }
+
+                                if( !(numSequence2[4] === undefined) && numSequence2[4] !== 0 )
+                                {
+                                    numSequence2 = [];
+                                }
+
+                                if( !(numSequence2[5] === undefined) && numSequence2[5] !== 3 )
+                                {
+                                    numSequence2 = [];
+                                }
+
+                                if(!(numSequence2[6] === undefined) )
+                                {
+                                    if(numSequence2[6] !== 1)
+                                    {
+                                        numSequence2 = [];
+                                    }
+                                    else
+                                    {
+                                        $("#step-3-P2").text("☑");
+                                        numSequence2 = [];
+
+                                        stepCheck2[2] = true;
+                                    }
+                                }
+
+                                console.log(numSequence2);
+                            }
+                        }
+                    }
+                    
+                    //1- Wash hands: Press A for exactly 3 seconds while on the sink.");
+                    if(stepCheck2[0] && stepCheck2[1] && stepCheck2[2] && !stepCheck2[3] )
+                    {
+                        if(isStove[1])
+                        {
+
+                            if( jQuery.inArray( 0, buttonsPressedList) !== -1 && buttonsTime[0] >= 5 )
+                            {
+                                boolGate2[0] = true;
+                                console.log("A boolGate2");
+                            }
+
+                            if(jQuery.inArray( 1, buttonsPressedList) !== -1 && buttonsTime[1] >= 5 )
+                            {
+                                boolGate2[1] = true;
+                                console.log("B boolGate2");
+                            }
+
+                            if(boolGate2[0] && boolGate2[1])
+                            {
+                                $("#step-4-P2").text("☑");
+                                stepCheck2[3] = true;
+                                boolGate2 = [false, false];
+                            }
+
+                        }
+                        
+                    }
+
+                    if(stepCheck2[0] && stepCheck2[1] && stepCheck2[2] && stepCheck2[3] && !stepCheck2[4])
+                    {
+                        if(!(buttonsPressedList[0] === undefined))
+                        {
+                            if(isUtensils[1])
+                            {
+                                numSequence2.push(buttonsPressedList[0]);
+
+                                if( !(numSequence2[0] === undefined) && numSequence2[0] !== 0 )
+                                {
+                                    numSequence2 = [];
+                                }
+
+                                if( !(numSequence2[1] === undefined) && numSequence2[1] !== 1 )
+                                {
+                                    numSequence2 = [];
+                                }
+
+                                if( !(numSequence2[2] === undefined) && numSequence2[2] !== 0 )
+                                {
+                                    numSequence2 = [];
+                                }
+
+                                if( !(numSequence2[3] === undefined) && numSequence2[3] !== 1 )
+                                {
+                                    numSequence2 = [];
+                                }
+
+                                if( !(numSequence2[4] === undefined) && numSequence2[4] !== 0 )
+                                {
+                                    numSequence2 = [];
+                                }
+
+                                if(!(numSequence2[5] === undefined))
+                                {
+                                    if(numSequence2[5] !== 1)
+                                    {
+                                        numSequence2 = [];
+                                    }
+                                    else
+                                    {
+                                        $("#step-5-P2").text("☑");
+                                        numSequence2 = [];
+
+                                        stepCheck2[5] = true;
+                                    }
+                                }
+
+                                console.log(numSequence2);
+                            }
+                        }
+                    }
+
+                }
+
+
+
+
+
+            if (isAction[0]) {
+                //Particles
+                cloudParticles.forEach(p => {
+                    p.visible = true;
+                    p.rotation.z -= 0.1;
+                    p.rotation.x -= 0.02;
+                    if (toggle) {
+                        p.scale.set(Math.sin(slow) / 2 + 0.5, Math.sin(slow) / 2 + 0.5, Math.sin(slow) / 2 +
+                            0.5);
+                        toggle = false;
+                    } else {
+                        p.scale.set(Math.sin(-slow) / 2 + 0.5, Math.sin(-slow) / 2 + 0.5, Math.sin(-slow) / 2 +
+                            0.5);
+                        toggle = true;
+                    }
+                });
+
+            } else {
+                cloudParticles.forEach(p => {
+                    p.visible = false;
+                });
+            }
+
+            if (isAction[1]) {
+                //Particles
+                cloudParticles2.forEach(p => {
+                    p.visible = true;
+                    p.rotation.z -= 0.1;
+                    p.rotation.x -= 0.02;
+                    if (toggle) {
+                        p.scale.set(Math.sin(slow) / 2 + 0.5, Math.sin(slow) / 2 + 0.5, Math.sin(slow) / 2 +
+                            0.5);
+                        toggle = false;
+                    } else {
+                        p.scale.set(Math.sin(-slow) / 2 + 0.5, Math.sin(-slow) / 2 + 0.5, Math.sin(-slow) / 2 +
+                            0.5);
+                        toggle = true;
+                    }
+
+                });
+            } else {
+                cloudParticles2.forEach(p => {
+                    p.visible = false;
+                });
+            }
+
+            var checker = arr => arr.every(v => v === true);
+
+            if(checker(stepCheck))
+            {
+                $('#results-modal').modal('toggle');
+                $('#results-modal').modal('show');
+                $('#results-modal').modal('hide');
+            }
+
+            if(checker(stepCheck2))
+            {
+                $('#results-modal').modal('toggle');
+                $('#results-modal').modal('show');
+                $('#results-modal').modal('hide');
+            }
+
+            //console.log(character.position.x);
+            
             //}
-
+            }
         }
 
 
@@ -783,9 +1453,21 @@
         console.log("Gamepad connected at index %d: %s. %d buttons, %d axes.",
             e.gamepad.index, e.gamepad.id,
             e.gamepad.buttons.length, e.gamepad.axes.length);
+        
         isPlayerReady[1] = true;
     });
 
+/*
+
+window.addEventListener('gamepadbuttondown', function (e) {
+  console.log('Gamepad button down at index %d: %s. Button: %d.',
+    e.gamepad.index, e.gamepad.id, e.button);
+});
+window.addEventListener('gamepadbuttonup', function (e) {
+  console.log('Gamepad button up at index %d: %s. Button: %d.',
+    e.gamepad.index, e.gamepad.id, e.button);
+});
+*/
     /////////////////////////////////////////////////
     </script>
 
@@ -804,17 +1486,20 @@
 
             <div class="collapse navbar-collapse" id="ftco-nav">
                 <ul class="navbar-nav ml-auto">
+                    <li  class="p_logged nav-item">
+                        <p id="course-selected" class="nav-link"></p>
+                    </li>
                     <li class="p_logged nav-item">
                         <p id="counter" class="nav-link"></p>
                     </li>
 
                     @auth
-                    <li id="username" style="display: none;" class="p_logged nav-item"><a href="instructor.html"
+                    <li id="alias" style="display: none;" class="p_logged nav-item"><a href="instructor.html"
                             class="nav-link">{{ Auth::user()->name }}</a></li>
                     @endauth
 
                     @guest
-                    <li id="username" style="display: none;" class="p_guest nav-item"><a href="instructor.html"
+                    <li id="alias" style="display: none;" class="p_guest nav-item"><a href="#"
                             class="nav-link">Guest</a></li>
                     @endguest
 
@@ -962,7 +1647,7 @@
         </div>
     </div>
 
-    <section class="ftco-section ftco-no-pb ftco-no-pt" id="play-registry">
+    <section class="ftco-section ftco-no-pb ftco-no-pt" id="alias-registry">
         <div class="container">
             <div class="row">
                 <div class="col-md-7"></div>
@@ -977,10 +1662,10 @@
                             </div>
                             <div class="">
                                 <label class="label" for="name">Alias</label>
-                                <input type="text" class="form-control" placeholder="xXx_PussySlayer_xXx">
+                                <input type="text" class="form-control" id="alias-text"/>
                             </div>
                             <div class="form-group d-flex justify-content-end mt-4">
-                                <button id="play-btn" type="button" class="btn purple submit fill">Play!</button>
+                                <button id="alias-btn" type="button" class="btn purple submit fill">Play with alias</button>
                             </div>
 
                             <div class="form-group">
@@ -1016,20 +1701,81 @@
     <section class="ftco-section ftco-no-pb ftco-no-pt" style="display: none;" id="gameplay-instructions">
         <div class="container gameplay">
             <div class="row">
-                <div class="col-md-8"></div>
-                <div class="col-md-4 order-md-last">
+                <div class="col-md-7"></div>
+                <div class="col-md-5 order-md-last">
                     <div class="login-wrap gameplay p-4 p-md-5">
                         <h3>Shnitzel</h3>
                         <hr>
-                        <form action="#" class="signup-form">
-                            <div class="">
-                                <p>1- Sandiw ☑☑</p>
-                                <p>1- Sandiw</p>
-                                <p>1- Sandiw</p>
-                                <p>1- Sandiw</p>
-                                <p>1- Sandiw</p>
+                        
+                            <div class="row">
+                                <div class="col-md-10 gameplay">
+                                    <p id="step-1" class="no-margin"></p>
+                                </div>
+
+                                <div class="col-md-1 gameplay">
+                                    <p id="step-1-P1" class="pink">☐</p>
+                                </div>
+
+                                <div class="col-md-1 gameplay">
+                                    <p id="step-1-P2" class="teal">☐</p>
+                                </div>
                             </div>
-                        </form>
+
+                            <div class="row">
+                                <div class="col-md-10 gameplay">
+                                    <p id="step-2" class="no-margin"></p>
+                                </div>
+
+                                <div class="col-md-1 gameplay">
+                                    <p id="step-2-P1" class="pink">☐</p>
+                                </div>
+
+                                <div class="col-md-1 gameplay">
+                                    <p id="step-2-P2" class="teal">☐</p>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-10 gameplay">
+                                    <p id="step-3" class="no-margin"></p>
+                                </div>
+
+                                <div class="col-md-1 gameplay">
+                                    <p id="step-3-P1" class="pink">☐</p>
+                                </div>
+
+                                <div class="col-md-1 gameplay">
+                                    <p id="step-3-P2" class="teal">☐</p>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-10 gameplay">
+                                    <p id="step-4" class="no-margin"></p>
+                                </div>
+
+                                <div class="col-md-1 gameplay">
+                                    <p id="step-4-P1" class="pink">☐</p>
+                                </div>
+
+                                <div class="col-md-1 gameplay">
+                                    <p id="step-4-P2" class="teal">☐</p>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-10 gameplay">
+                                    <p id="step-5" class="no-margin"></p>
+                                </div>
+
+                                <div class="col-md-1 gameplay">
+                                    <p id="step-5-P1" class="pink">☐</p>
+                                </div>
+
+                                <div class="col-md-1 gameplay">
+                                    <p id="step-5-P2" class="teal">☐</p>
+                                </div>
+                            </div>
                     </div>
                 </div>
             </div>
@@ -1037,7 +1783,7 @@
     </section>
 
 
-    <section class="ftco-section ftco-no-pb ftco-no-pt" style="display: none;" id="select-stage">
+    <section class="ftco-section ftco-no-pb ftco-no-pt" style="display: none;" id="stage-registry">
         <div class="container">
             <div class="row">
                 <div class="col-md-7"></div>
@@ -1050,13 +1796,6 @@
                                 <p>Nationality</p>
 
                             </div>
-
-                            <!--div class="row justify-content-center pb-4">
-          <div class="col-md-12 heading-section text-center ftco-animate">
-          	<span class="subheading">Start Learning Today</span>
-            <h2 class="mb-4">Browse Online Course Category</h2>
-        </div>
-    </div-->
 
                             <div class="row justify-content-center">
                                 <div class="col-md-4 col-lg-4">
@@ -1091,7 +1830,7 @@
                                 </div>
                             </div>
                             <div class="form-group d-flex justify-content-end mt-4">
-                                <button id="okay-btn" type="button" class="btn purple submit fill">Okay!</button>
+                                <button id="stage-btn" type="button" class="btn purple submit fill">Okay!</button>
                             </div>
                         </form>
                     </div>
