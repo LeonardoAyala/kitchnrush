@@ -358,7 +358,7 @@
                     $("#step-4").text("4- Fry: Press A and B for 5-6 seconds while on the stove.");
                     $("#step-5").text("5- Serve: Press A B in sequence 3 times while on the utensils.");
 
-                    audioLoader.load('assets/yodel.mp3', function(buffer) {
+                    audioLoader.load('assets/yodel2.mp3', function(buffer) {
 
                         sound.setBuffer(buffer);
                         sound.setLoop(true);
