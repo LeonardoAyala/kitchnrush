@@ -142,6 +142,10 @@
     var boolGate = [false, false];
     var boolGate2 = [false, false];
 
+    var minutes;
+    var seconds;
+    var secondsString;
+
     /////////////////////////////////////////////////
     //Obligatory starter shit.
 
@@ -282,6 +286,14 @@
 
     $(document).ready(function() {
 
+        $("#neat-btn").click(function() {
+            window.Livewire.emit('increment');
+
+            $('#highscores-modal').modal('toggle');
+            $('#highscores-modal').modal('show');
+            $('#highscores-modal').modal('hide');
+        });
+
         $("#alias-btn").click(function() {
             $("#alias-registry").toggle("fast", "swing", function() {
                 $("#stage-registry").toggle();
@@ -301,6 +313,13 @@
                 case "cc_murrica":
                     $("#course-selected").text("'Murrica");
 
+                    $("#recipe-tittle").text("Pancakes");
+                    $("#step-1").text("1- Wash hands: Press B for exactly 2 seconds while on the sink.");
+                    $("#step-2").text("2- Sift together: Press A exactly 10 times while on the cutboard.");
+                    $("#step-3").text("3- Stir mix: Press ⬆ ⬇ in sequence 3 times while on the cutboard.");
+                    $("#step-4").text("4- Heat on pan: Press A and ⬆ for 10-15 seconds while on the stove.");
+                    $("#step-5").text("5- Serve: Press A B in sequence 4 times while on the utensils.");
+
                     audioLoader.load('assets/turkey.mp3', function(buffer) {
 
                         sound.setBuffer(buffer);
@@ -313,6 +332,13 @@
 
                 case "cc_italy":
                     $("#course-selected").text("Italy");
+
+                    $("#recipe-tittle").text("Ravioli");
+                    $("#step-1").text("1- Wash hands: Press A for exactly 4 seconds while on the sink.");
+                    $("#step-2").text("2- Wisk together: Press A exactly 20 times while on the cutboard.");
+                    $("#step-3").text("3- Roll dough: Press B B ⬆ ⬆ A ⬇ ⬇ B in sequence while on the cutboard.");
+                    $("#step-4").text("4- Bring to boil: Press A and B for 7-10 seconds while on the stove.");
+                    $("#step-5").text("5- Serve: Press ⬇ B in sequence 2 times while on the utensils.");
 
                     audioLoader.load('assets/funi.mp3', function(buffer) {
 
@@ -349,8 +375,6 @@
                     $("#step-2").text("1- Wash hands: Press A for exactly 3 seconds while on the sink.");
                     $("#step-3").text("1- Wash hands: Press A for exactly 3 seconds while on the sink.");
                     $("#step-4").text("1- Wash hands: Press A for exactly 3 seconds while on the sink.");
-
-                    
 
                     audioLoader.load('assets/yodel.mp3', function(buffer) {
 
@@ -633,7 +657,6 @@
 
                     //Add the keyboard presses.
                     if (keys["A"]) {
-                        //window.Livewire.emit('increment');
                         yaw[0] = movementIndex;
                         isMoving[0] = true;
                     } else if (keys["D"]) {
@@ -726,12 +749,6 @@
                         $('#pause-modal').modal('toggle');
                         $('#pause-modal').modal('show');
                         $('#pause-modal').modal('hide');
-                    }
-                
-                    if (keys["H"]) {
-                        $('#highscores-modal').modal('toggle');
-                        $('#highscores-modal').modal('show');
-                        $('#highscores-modal').modal('hide');
                     }
                 
                     gamepad = navigator.getGamepads ? navigator.getGamepads() : (navigator.webkitGetGamepads ? navigator
@@ -866,9 +883,9 @@
                     camera.rotation.z -= THREE.Math.degToRad(0.05 + 0.002 * (Math.floor(timer.getElapsedTime()) / 3));
 
                     //Timer
-                    var minutes = Math.floor(Math.floor(timer.getElapsedTime()) / 60);
-                    var seconds = Math.floor(timer.getElapsedTime()) - minutes * 60;
-                    var secondsString = "";
+                    minutes = Math.floor(Math.floor(timer.getElapsedTime()) / 60);
+                    seconds = Math.floor(timer.getElapsedTime()) - minutes * 60;
+                    secondsString = "";
                     if (seconds <= 10) {
                         secondsString = "0" + seconds.toString();
                     } else {
@@ -1179,7 +1196,7 @@
                                         $("#step-5-P1").text("☑");
                                         numSequence = [];
 
-                                        stepCheck[5] = true;
+                                        stepCheck[4] = true;
                                     }
                                 }
 
@@ -1352,7 +1369,366 @@
                                         $("#step-5-P2").text("☑");
                                         numSequence2 = [];
 
-                                        stepCheck2[5] = true;
+                                        stepCheck2[4] = true;
+                                    }
+                                }
+
+                                console.log(numSequence2);
+                            }
+                        }
+                    }
+
+                }
+
+                if($("#course-selected").text() == "'Murrica")
+                {
+                    //1- Wash hands: Press A for exactly 3 seconds while on the sink.");
+                    if(!stepCheck[0] )
+                    {
+                        if( jQuery.inArray( "R", keysPressedList) !== -1 && isSink[0])
+                        {
+                            if(keysTime["R"] == 2 )
+                            {
+                                $("#step-1-P1").text("☑");
+                                stepCheck[0] = true;
+                            }
+                        }
+                        
+                    }
+
+                    //2- Stir Mix: Press A exactly 30 times while on the cutboard.");
+                    
+                    if(stepCheck[0] && !stepCheck[1])
+                    {
+                        if( jQuery.inArray( "E", keysPressedList) !== -1 && isCutboard[0])
+                        {
+                            numPresses[0]++;
+                            console.log(numPresses[0]);
+                            if(numPresses[0] == 10 )
+                            {
+                                $("#step-2-P1").text("☑");
+                                numPresses[0] = 0;
+
+                                stepCheck[1] = true;
+                            }
+                        }
+                    }
+
+                    if(stepCheck[0] && stepCheck[1] && !stepCheck[2])
+                    {
+                        if(keysPressedList[0])
+                        {
+                            if(isCutboard[0])
+                            {
+                                numSequence.push(keysPressedList[0]);
+
+                                if( numSequence[0] && numSequence[0] !== "W")
+                                {
+                                    numSequence = [];
+                                }
+
+                                if( numSequence[1] && numSequence[1] !== "S")
+                                {
+                                    numSequence = [];
+                                }
+
+                                if( numSequence[2] && numSequence[2] !== "W")
+                                {
+                                    numSequence = [];
+                                }
+
+                                if( numSequence[3] && numSequence[3] !== "S")
+                                {
+                                    numSequence = [];
+                                }
+
+                                if( numSequence[4] && numSequence[4] !== "W")
+                                {
+                                    numSequence = [];
+                                }
+
+                                if(numSequence[5])
+                                {
+                                    if(numSequence[5] !== "S")
+                                    {
+                                        numSequence = [];
+                                    }
+                                    else
+                                    {
+                                        $("#step-3-P1").text("☑");
+                                        numSequence = [];
+
+                                        stepCheck[2] = true;
+                                    }
+                                }
+
+                                console.log(numSequence);
+                            }
+                        }
+                    }
+                    
+                    //1- Wash hands: Press A for exactly 3 seconds while on the sink.");
+                    if(stepCheck[0] && stepCheck[1] && stepCheck[2] && !stepCheck[3] )
+                    {
+                        if(isStove[0])
+                        {
+                            
+                            if( jQuery.inArray( "E", keysPressedList) !== -1 && keysTime["E"] >= 10 )
+                            {
+                                boolGate[0] = true;
+                                console.log("E boolgate");
+                            }
+
+                            if(jQuery.inArray( "W", keysPressedList) !== -1 && keysTime["W"] >= 10 )
+                            {
+                                boolGate[1] = true;
+                                console.log("R boolgate");
+                            }
+
+                            if(boolGate[0] && boolGate[1])
+                            {
+                                $("#step-4-P1").text("☑");
+                                stepCheck[3] = true;
+                                boolGate = [false, false];
+                            }
+
+                        }
+                        
+                    }
+
+                    if(stepCheck[0] && stepCheck[1] && stepCheck[2] && stepCheck[3] && !stepCheck[4])
+                    {
+                        if(keysPressedList[0])
+                        {
+                            if(isUtensils[0])
+                            {
+                                numSequence.push(keysPressedList[0]);
+
+                                if( numSequence[0] && numSequence[0] !== "E")
+                                {
+                                    numSequence = [];
+                                }
+
+                                if( numSequence[1] && numSequence[1] !== "R")
+                                {
+                                    numSequence = [];
+                                }
+
+                                if( numSequence[2] && numSequence[2] !== "E")
+                                {
+                                    numSequence = [];
+                                }
+
+                                if( numSequence[3] && numSequence[3] !== "R")
+                                {
+                                    numSequence = [];
+                                }
+
+                                if( numSequence[4] && numSequence[4] !== "E")
+                                {
+                                    numSequence = [];
+                                }
+
+                                if( numSequence[5] && numSequence[5] !== "R")
+                                {
+                                    numSequence = [];
+                                }
+
+                                if( numSequence[6] && numSequence[6] !== "E")
+                                {
+                                    numSequence = [];
+                                }
+
+                                if(numSequence[7])
+                                {
+                                    if(numSequence[7] !== "R")
+                                    {
+                                        numSequence = [];
+                                    }
+                                    else
+                                    {
+                                        $("#step-5-P1").text("☑");
+                                        numSequence = [];
+
+                                        stepCheck[4] = true;
+                                    }
+                                }
+
+                                console.log(numSequence);
+                            }
+                        }
+                    }
+
+                    ///////////////////////////////////////////////////////////////////////////////
+
+                    //1- Wash hands: Press A for exactly 3 seconds while on the sink.");
+                    if(!stepCheck2[0] )
+                    {
+                        if( jQuery.inArray( 1, buttonsPressedList) !== -1 && isSink[1])
+                        {
+                            if(buttonsTime[1] == 2 )
+                            {
+                                $("#step-1-P2").text("☑");
+                                stepCheck2[0] = true;
+                            }
+                        }
+                        
+                    }
+
+                    //2- Stir Mix: Press A exactly 30 times while on the cutboard.");
+                    
+                    if(stepCheck2[0] && !stepCheck2[1])
+                    {
+                        if( jQuery.inArray( 0, buttonsPressedList) !== -1 && isCutboard[1])
+                        {
+                            numPresses2[0]++;
+                            console.log(numPresses2[0]);
+                            if(numPresses2[0] == 10 )
+                            {
+                                $("#step-2-P2").text("☑");
+                                numPresses2[0] = 0;
+
+                                stepCheck2[1] = true;
+                            }
+                        }
+                    }
+
+                    if(stepCheck2[0] && stepCheck2[1] && !stepCheck2[2])
+                    {
+                        if(!(buttonsPressedList[0] === undefined))
+                        {
+                            if(isCutboard[1])
+                            {
+                                numSequence2.push(buttonsPressedList[0]);
+                                if( !(numSequence2[0] === undefined) && numSequence2[0] !== 2 )
+                                {
+                                    numSequence2 = [];
+                                }
+
+                                if(  !(numSequence2[1] === undefined) && numSequence2[1] !== 3 )
+                                {
+                                    numSequence2 = [];
+                                }
+
+                                if( !(numSequence2[2] === undefined) && numSequence2[2] !== 2 )
+                                {
+                                    numSequence2 = [];
+                                }
+
+                                if( !(numSequence2[3] === undefined) && numSequence2[3] !== 3 )
+                                {
+                                    numSequence2 = [];
+                                }
+
+                                if( !(numSequence2[4] === undefined) && numSequence2[4] !== 2 )
+                                {
+                                    numSequence2 = [];
+                                }
+
+                                if(!(numSequence2[5] === undefined) )
+                                {
+                                    if(numSequence2[5] !== 3)
+                                    {
+                                        numSequence2 = [];
+                                    }
+                                    else
+                                    {
+                                        $("#step-3-P2").text("☑");
+                                        numSequence2 = [];
+
+                                        stepCheck2[2] = true;
+                                    }
+                                }
+
+                                console.log(numSequence2);
+                            }
+                        }
+                    }
+                    
+                    //1- Wash hands: Press A for exactly 3 seconds while on the sink.");
+                    if(stepCheck2[0] && stepCheck2[1] && stepCheck2[2] && !stepCheck2[3] )
+                    {
+                        if(isStove[1])
+                        {
+
+                            if( jQuery.inArray( 0, buttonsPressedList) !== -1 && buttonsTime[0] >= 10 )
+                            {
+                                boolGate2[0] = true;
+                                console.log("A boolGate2");
+                            }
+
+                            if(jQuery.inArray( 2, buttonsPressedList) !== -1 && buttonsTime[2] >= 10 )
+                            {
+                                boolGate2[1] = true;
+                                console.log("B boolGate2");
+                            }
+
+                            if(boolGate2[0] && boolGate2[1])
+                            {
+                                $("#step-4-P2").text("☑");
+                                stepCheck2[3] = true;
+                                boolGate2 = [false, false];
+                            }
+
+                        }
+                        
+                    }
+
+                    if(stepCheck2[0] && stepCheck2[1] && stepCheck2[2] && stepCheck2[3] && !stepCheck2[4])
+                    {
+                        if(!(buttonsPressedList[0] === undefined))
+                        {
+                            if(isUtensils[1])
+                            {
+                                numSequence2.push(buttonsPressedList[0]);
+
+                                if( !(numSequence2[0] === undefined) && numSequence2[0] !== 0 )
+                                {
+                                    numSequence2 = [];
+                                }
+
+                                if( !(numSequence2[1] === undefined) && numSequence2[1] !== 1 )
+                                {
+                                    numSequence2 = [];
+                                }
+
+                                if( !(numSequence2[2] === undefined) && numSequence2[2] !== 0 )
+                                {
+                                    numSequence2 = [];
+                                }
+
+                                if( !(numSequence2[3] === undefined) && numSequence2[3] !== 1 )
+                                {
+                                    numSequence2 = [];
+                                }
+
+                                if( !(numSequence2[4] === undefined) && numSequence2[4] !== 0 )
+                                {
+                                    numSequence2 = [];
+                                }
+
+                                if( !(numSequence2[5] === undefined) && numSequence2[5] !== 1 )
+                                {
+                                    numSequence2 = [];
+                                }
+
+                                if( !(numSequence2[6] === undefined) && numSequence2[6] !== 0 )
+                                {
+                                    numSequence2 = [];
+                                }
+
+                                if(!(numSequence2[7] === undefined))
+                                {
+                                    if(numSequence2[7] !== 1)
+                                    {
+                                        numSequence2 = [];
+                                    }
+                                    else
+                                    {
+                                        $("#step-5-P2").text("☑");
+                                        numSequence2 = [];
+
+                                        stepCheck2[4] = true;
                                     }
                                 }
 
@@ -1364,7 +1740,344 @@
                 }
 
 
+                if($("#course-selected").text() == "Italy")
+                {
+                    //1- Wash hands: Press A for exactly 3 seconds while on the sink.");
+                    if(!stepCheck[0] )
+                    {
+                        if( jQuery.inArray( "E", keysPressedList) !== -1 && isSink[0])
+                        {
+                            if(keysTime["E"] == 4 )
+                            {
+                                $("#step-1-P1").text("☑");
+                                stepCheck[0] = true;
+                            }
+                        }
+                        
+                    }
 
+                    //2- Stir Mix: Press A exactly 30 times while on the cutboard.");
+                    
+                    if(stepCheck[0] && !stepCheck[1])
+                    {
+                        if( jQuery.inArray( "E", keysPressedList) !== -1 && isCutboard[0])
+                        {
+                            numPresses[0]++;
+                            console.log(numPresses[0]);
+                            if(numPresses[0] == 20 )
+                            {
+                                $("#step-2-P1").text("☑");
+                                numPresses[0] = 0;
+
+                                stepCheck[1] = true;
+                            }
+                        }
+                    }
+
+                    if(stepCheck[0] && stepCheck[1] && !stepCheck[2])
+                    {
+                        if(keysPressedList[0])
+                        {
+                            if(isCutboard[0])
+                            {
+                                numSequence.push(keysPressedList[0]);
+
+                                if( numSequence[0] && numSequence[0] !== "R")
+                                {
+                                    numSequence = [];
+                                }
+
+                                if( numSequence[1] && numSequence[1] !== "R")
+                                {
+                                    numSequence = [];
+                                }
+
+                                if( numSequence[2] && numSequence[2] !== "W")
+                                {
+                                    numSequence = [];
+                                }
+
+                                if( numSequence[3] && numSequence[3] !== "W")
+                                {
+                                    numSequence = [];
+                                }
+
+                                if( numSequence[4] && numSequence[4] !== "E")
+                                {
+                                    numSequence = [];
+                                }
+
+                                if( numSequence[5] && numSequence[5] !== "S")
+                                {
+                                    numSequence = [];
+                                }
+
+                                if( numSequence[6] && numSequence[6] !== "S")
+                                {
+                                    numSequence = [];
+                                }
+
+                                if(numSequence[7])
+                                {
+                                    if(numSequence[7] !== "R")
+                                    {
+                                        numSequence = [];
+                                    }
+                                    else
+                                    {
+                                        $("#step-3-P1").text("☑");
+                                        numSequence = [];
+
+                                        stepCheck[2] = true;
+                                    }
+                                }
+
+                                console.log(numSequence);
+                            }
+                        }
+                    }
+                    
+                    //1- Wash hands: Press A for exactly 3 seconds while on the sink.");
+                    if(stepCheck[0] && stepCheck[1] && stepCheck[2] && !stepCheck[3] )
+                    {
+                        if(isStove[0])
+                        {
+                            
+                            if( jQuery.inArray( "E", keysPressedList) !== -1 && keysTime["E"] >= 7 )
+                            {
+                                boolGate[0] = true;
+                                console.log("E boolgate");
+                            }
+
+                            if(jQuery.inArray( "R", keysPressedList) !== -1 && keysTime["R"] >= 7 )
+                            {
+                                boolGate[1] = true;
+                                console.log("R boolgate");
+                            }
+
+                            if(boolGate[0] && boolGate[1])
+                            {
+                                $("#step-4-P1").text("☑");
+                                stepCheck[3] = true;
+                                boolGate = [false, false];
+                            }
+
+                        }
+                        
+                    }
+
+                    if(stepCheck[0] && stepCheck[1] && stepCheck[2] && stepCheck[3] && !stepCheck[4])
+                    {
+                        if(keysPressedList[0])
+                        {
+                            if(isUtensils[0])
+                            {
+                                numSequence.push(keysPressedList[0]);
+
+                                if( numSequence[0] && numSequence[0] !== "W")
+                                {
+                                    numSequence = [];
+                                }
+
+                                if( numSequence[1] && numSequence[1] !== "R")
+                                {
+                                    numSequence = [];
+                                }
+
+                                if( numSequence[2] && numSequence[2] !== "W")
+                                {
+                                    numSequence = [];
+                                }
+
+                                if(numSequence[3])
+                                {
+                                    if(numSequence[3] !== "R")
+                                    {
+                                        numSequence = [];
+                                    }
+                                    else
+                                    {
+                                        $("#step-5-P1").text("☑");
+                                        numSequence = [];
+
+                                        stepCheck[4] = true;
+                                    }
+                                }
+
+                                console.log(numSequence);
+                            }
+                        }
+                    }
+
+                    ///////////////////////////////////////////////////////////////////////////////
+
+                    //1- Wash hands: Press A for exactly 3 seconds while on the sink.");
+                    if(!stepCheck2[0] )
+                    {
+                        if( jQuery.inArray( 0, buttonsPressedList) !== -1 && isSink[1])
+                        {
+                            if(buttonsTime[0] == 4 )
+                            {
+                                $("#step-1-P2").text("☑");
+                                stepCheck2[0] = true;
+                            }
+                        }
+                        
+                    }
+
+                    //2- Stir Mix: Press A exactly 30 times while on the cutboard.");
+                    
+                    if(stepCheck2[0] && !stepCheck2[1])
+                    {
+                        if( jQuery.inArray( 0, buttonsPressedList) !== -1 && isCutboard[1])
+                        {
+                            numPresses2[0]++;
+                            console.log(numPresses2[0]);
+                            if(numPresses2[0] == 20 )
+                            {
+                                $("#step-2-P2").text("☑");
+                                numPresses2[0] = 0;
+
+                                stepCheck2[1] = true;
+                            }
+                        }
+                    }
+
+                    if(stepCheck2[0] && stepCheck2[1] && !stepCheck2[2])
+                    {
+                        if(!(buttonsPressedList[0] === undefined))
+                        {
+                            if(isCutboard[1])
+                            {
+                                numSequence2.push(buttonsPressedList[0]);
+                                if( !(numSequence2[0] === undefined) && numSequence2[0] !== 1 )
+                                {
+                                    numSequence2 = [];
+                                }
+
+                                if(  !(numSequence2[1] === undefined) && numSequence2[1] !== 1 )
+                                {
+                                    numSequence2 = [];
+                                }
+
+                                if( !(numSequence2[2] === undefined) && numSequence2[2] !== 2 )
+                                {
+                                    numSequence2 = [];
+                                }
+
+                                if( !(numSequence2[3] === undefined) && numSequence2[3] !== 2 )
+                                {
+                                    numSequence2 = [];
+                                }
+
+                                if( !(numSequence2[4] === undefined) && numSequence2[4] !== 0 )
+                                {
+                                    numSequence2 = [];
+                                }
+
+                                if( !(numSequence2[5] === undefined) && numSequence2[5] !== 3 )
+                                {
+                                    numSequence2 = [];
+                                }
+
+                                if( !(numSequence2[6] === undefined) && numSequence2[6] !== 3 )
+                                {
+                                    numSequence2 = [];
+                                }
+
+                                if(!(numSequence2[7] === undefined) )
+                                {
+                                    if(numSequence2[7] !== 1)
+                                    {
+                                        numSequence2 = [];
+                                    }
+                                    else
+                                    {
+                                        $("#step-3-P2").text("☑");
+                                        numSequence2 = [];
+
+                                        stepCheck2[2] = true;
+                                    }
+                                }
+
+                                console.log(numSequence2);
+                            }
+                        }
+                    }
+                    
+                    //1- Wash hands: Press A for exactly 3 seconds while on the sink.");
+                    if(stepCheck2[0] && stepCheck2[1] && stepCheck2[2] && !stepCheck2[3] )
+                    {
+                        if(isStove[1])
+                        {
+
+                            if( jQuery.inArray( 0, buttonsPressedList) !== -1 && buttonsTime[0] >= 7 )
+                            {
+                                boolGate2[0] = true;
+                                console.log("A boolGate2");
+                            }
+
+                            if(jQuery.inArray( 1, buttonsPressedList) !== -1 && buttonsTime[1] >= 7 )
+                            {
+                                boolGate2[1] = true;
+                                console.log("B boolGate2");
+                            }
+
+                            if(boolGate2[0] && boolGate2[1])
+                            {
+                                $("#step-4-P2").text("☑");
+                                stepCheck2[3] = true;
+                                boolGate2 = [false, false];
+                            }
+
+                        }
+                        
+                    }
+
+                    if(stepCheck2[0] && stepCheck2[1] && stepCheck2[2] && stepCheck2[3] && !stepCheck2[4])
+                    {
+                        if(!(buttonsPressedList[0] === undefined))
+                        {
+                            if(isUtensils[1])
+                            {
+                                numSequence2.push(buttonsPressedList[0]);
+
+                                if( !(numSequence2[0] === undefined) && numSequence2[0] !== 3 )
+                                {
+                                    numSequence2 = [];
+                                }
+
+                                if( !(numSequence2[1] === undefined) && numSequence2[1] !== 1 )
+                                {
+                                    numSequence2 = [];
+                                }
+
+                                if( !(numSequence2[2] === undefined) && numSequence2[2] !== 3 )
+                                {
+                                    numSequence2 = [];
+                                }
+
+                                if(!(numSequence2[3] === undefined))
+                                {
+                                    if(numSequence2[3] !== 1)
+                                    {
+                                        numSequence2 = [];
+                                    }
+                                    else
+                                    {
+                                        $("#step-5-P2").text("☑");
+                                        numSequence2 = [];
+
+                                        stepCheck2[4] = true;
+                                    }
+                                }
+
+                                console.log(numSequence2);
+                            }
+                        }
+                    }
+
+                }
 
 
             if (isAction[0]) {
@@ -1413,21 +2126,7 @@
                 });
             }
 
-            var checker = arr => arr.every(v => v === true);
 
-            if(checker(stepCheck))
-            {
-                $('#results-modal').modal('toggle');
-                $('#results-modal').modal('show');
-                $('#results-modal').modal('hide');
-            }
-
-            if(checker(stepCheck2))
-            {
-                $('#results-modal').modal('toggle');
-                $('#results-modal').modal('show');
-                $('#results-modal').modal('hide');
-            }
 
             //console.log(character.position.x);
             
@@ -1435,6 +2134,38 @@
             }
         }
 
+
+        var checker = arr => arr.every(v => v === true);
+
+        if(checker(stepCheck))
+        {
+            stepCheck[0] = false;
+            isPlayerReady[0] = false;
+
+            $('#alias-won').text( $('#alias').text() + " Won!")
+            $('#score').text("With a time of: " + minutes + ":" + secondsString);
+
+            $('#results-modal').modal('toggle');
+            $('#results-modal').modal('show');
+            $('#results-modal').modal('hide');
+
+        }
+
+
+        
+        if(checker(stepCheck2))
+        {
+            stepCheck2[0] = false;
+            isPlayerReady[1] = false;
+
+            $('#alias-won').text( $('#alias').text()+ "-P2" + " Won!")
+            $('#score').text("With a time of: " + minutes + ":" + secondsString);
+
+            $('#results-modal').modal('toggle');
+            $('#results-modal').modal('show');
+            $('#results-modal').modal('hide');
+
+        }
 
         renderer.render(scene, camera);
     }
@@ -1542,17 +2273,17 @@ window.addEventListener('gamepadbuttonup', function (e) {
                 <div class="modal-body">
                     <div class="row justify-content-center pb-4">
                         <div class="col-md-12 heading-section text-center ftco-animate">
-                            <span class="subheading">Congratulations!</span>
-                            <h2 class="mb-4">You Won!</h2>
+                            <span class="subheading">Hall of fame</span>
+                            <h2 class="mb-4">Highscore holders:</h2>
 
                             <livewire:highscore />
 
                         </div>
                     </div>
-                    <p>With: 0.00 seconds to spare.</p>
+                    <!--p>With: 0.00 seconds to spare.</p-->
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-default purple" data-dismiss="modal">Neat!</button>
+                    <button  type="button" class="btn btn-default purple" data-dismiss="modal">Neat!</button>
                 </div>
             </div>
 
@@ -1574,13 +2305,13 @@ window.addEventListener('gamepadbuttonup', function (e) {
                     <div class="row justify-content-center pb-4">
                         <div class="col-md-12 heading-section text-center ftco-animate">
                             <span class="subheading">Congratulations!</span>
-                            <h2 class="mb-4">You Won!</h2>
+                            <h2 id="alias-won" class="mb-4"></h2>
                         </div>
                     </div>
-                    <p>With: 0.00 seconds to spare.</p>
+                    <p id="score" >With a time of: </p>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-default purple" data-dismiss="modal">Neat!</button>
+                    <button id="neat-btn" type="button" class="btn btn-default purple" data-dismiss="modal">Neat!</button>
                 </div>
             </div>
 
@@ -1704,7 +2435,7 @@ window.addEventListener('gamepadbuttonup', function (e) {
                 <div class="col-md-7"></div>
                 <div class="col-md-5 order-md-last">
                     <div class="login-wrap gameplay p-4 p-md-5">
-                        <h3>Shnitzel</h3>
+                        <h3 id="recipe-tittle">Schnitzel</h3>
                         <hr>
                         
                             <div class="row">
